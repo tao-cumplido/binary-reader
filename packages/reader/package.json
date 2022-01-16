@@ -1,0 +1,14 @@
+{
+	"name": "@nishin/reader",
+	"version": "0.0.1",
+	"main": "dist/index.js",
+	"types": "src/index.ts",
+	"scripts": {
+		"build": "tsc",
+		"test": "cross-env TS_NODE_PROJECT=tsconfig.test.json ava"
+	},
+	"dependencies": {
+		"@nishin/enum": "^0.0.1",
+		"tslib": "^2.3.1"
+	}
+}

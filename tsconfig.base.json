@@ -1,0 +1,18 @@
+{
+	"compilerOptions": {
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"useUnknownInCatchVariables": true,
+		"noImplicitOverride": true,
+		"moduleResolution": "node",
+		"esModuleInterop": true,
+		"module": "commonjs",
+		"isolatedModules": true,
+		"target": "esnext",
+		"lib": ["esnext"],
+		"sourceMap": true,
+		"importHelpers": true,
+		"composite": true
+	},
+	"exclude": ["node_modules"]
+}

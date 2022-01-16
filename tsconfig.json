@@ -1,0 +1,8 @@
+{
+	"files": [],
+	"references": [
+		{ "path": "packages/enum/tsconfig.json" },
+		{ "path": "packages/reader/tsconfig.json" },
+		{ "path": "packages/reader/tsconfig.test.json" }
+	]
+}

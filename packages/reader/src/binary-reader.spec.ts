@@ -1,0 +1,531 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+
+import test from 'ava';
+
+import { BinaryReader } from './binary-reader';
+import { ByteOrder } from './byte-order';
+import { DataType } from './data/data-type';
+import { Encoding } from './encoding';
+import { ReadError } from './read-error';
+
+function byteList(value: number | bigint, signed: boolean, byteOrder: ByteOrder) {
+	const hex = (() => {
+		if (signed) {
+			const absValue = value < 0 ? (typeof value === 'number' ? value * -1 : value * -1n) : value;
+			const bits = Math.ceil(absValue.toString(16).length / 2) * 8;
+			return BigInt.asUintN(bits, BigInt(value)).toString(16);
+		}
+
+		return value.toString(16);
+	})();
+
+	const bytes = hex
+		.padStart(Math.ceil(hex.length / 2) * 2, '0')
+		.split(/(?<=^(?:.{2})+)(?!$)/u)
+		.map((byte) => parseInt(byte, 16));
+
+	return byteOrder === ByteOrder.LittleEndian ? bytes.reverse() : bytes;
+}
+
+const uintBytesBE = (value: number | bigint) => byteList(value, false, ByteOrder.BigEndian);
+const uintBytesLE = (value: number | bigint) => byteList(value, false, ByteOrder.LittleEndian);
+const intBytesBE = (value: number | bigint) => byteList(value, true, ByteOrder.BigEndian);
+const intBytesLE = (value: number | bigint) => byteList(value, true, ByteOrder.LittleEndian);
+
+test('boolean', ({ deepEqual }) => {
+	const reader = new BinaryReader(new Uint8Array([0, 1, 2]));
+	deepEqual(reader.next(DataType.Boolean), { value: false, byteLength: 1 });
+	deepEqual(reader.next(DataType.Boolean), { value: true, byteLength: 1 });
+	deepEqual(reader.next(DataType.Boolean), { value: true, byteLength: 1 });
+});
+
+test('uint little endian', ({ deepEqual }) => {
+	const reader = new BinaryReader(
+		new Uint8Array([
+			...uintBytesLE(0x12),
+			...uintBytesLE(0x12_34),
+			...uintBytesLE(0x12_34_56),
+			...uintBytesLE(0x12_34_56_78),
+			...uintBytesLE(0x12_34_56_78_9a),
+			...uintBytesLE(0x12_34_56_78_9a_bc),
+		]),
+		ByteOrder.LittleEndian,
+	);
+
+	deepEqual(reader.next(DataType.int({ signed: false, byteLength: 1 })), { value: 0x12, byteLength: 1 });
+	deepEqual(reader.next(DataType.int({ signed: false, byteLength: 2 })), { value: 0x12_34, byteLength: 2 });
+	deepEqual(reader.next(DataType.int({ signed: false, byteLength: 3 })), { value: 0x12_34_56, byteLength: 3 });
+	deepEqual(reader.next(DataType.int({ signed: false, byteLength: 4 })), { value: 0x12_34_56_78, byteLength: 4 });
+	deepEqual(reader.next(DataType.int({ signed: false, byteLength: 5 })), { value: 0x12_34_56_78_9a, byteLength: 5 });
+	deepEqual(reader.next(DataType.int({ signed: false, byteLength: 6 })), {
+		value: 0x12_34_56_78_9a_bc,
+		byteLength: 6,
+	});
+});
+
+test('uint big endian', ({ deepEqual }) => {
+	const reader = new BinaryReader(
+		new Uint8Array([
+			...uintBytesBE(0x12),
+			...uintBytesBE(0x12_34),
+			...uintBytesBE(0x12_34_56),
+			...uintBytesBE(0x12_34_56_78),
+			...uintBytesBE(0x12_34_56_78_9a),
+			...uintBytesBE(0x12_34_56_78_9a_bc),
+		]),
+		ByteOrder.BigEndian,
+	);
+
+	deepEqual(reader.next(DataType.int({ signed: false, byteLength: 1 })), { value: 0x12, byteLength: 1 });
+	deepEqual(reader.next(DataType.int({ signed: false, byteLength: 2 })), { value: 0x12_34, byteLength: 2 });
+	deepEqual(reader.next(DataType.int({ signed: false, byteLength: 3 })), { value: 0x12_34_56, byteLength: 3 });
+	deepEqual(reader.next(DataType.int({ signed: false, byteLength: 4 })), { value: 0x12_34_56_78, byteLength: 4 });
+	deepEqual(reader.next(DataType.int({ signed: false, byteLength: 5 })), { value: 0x12_34_56_78_9a, byteLength: 5 });
+	deepEqual(reader.next(DataType.int({ signed: false, byteLength: 6 })), {
+		value: 0x12_34_56_78_9a_bc,
+		byteLength: 6,
+	});
+});
+
+test('int little endian', ({ deepEqual }) => {
+	const reader = new BinaryReader(
+		new Uint8Array([
+			...intBytesLE(-0x12),
+			...intBytesLE(-0x12_34),
+			...intBytesLE(-0x12_34_56),
+			...intBytesLE(-0x12_34_56_78),
+			...intBytesLE(-0x12_34_56_78_9a),
+			...intBytesLE(-0x12_34_56_78_9a_bc),
+		]),
+		ByteOrder.LittleEndian,
+	);
+
+	deepEqual(reader.next(DataType.int({ signed: true, byteLength: 1 })), { value: -0x12, byteLength: 1 });
+	deepEqual(reader.next(DataType.int({ signed: true, byteLength: 2 })), { value: -0x12_34, byteLength: 2 });
+	deepEqual(reader.next(DataType.int({ signed: true, byteLength: 3 })), { value: -0x12_34_56, byteLength: 3 });
+	deepEqual(reader.next(DataType.int({ signed: true, byteLength: 4 })), { value: -0x12_34_56_78, byteLength: 4 });
+	deepEqual(reader.next(DataType.int({ signed: true, byteLength: 5 })), { value: -0x12_34_56_78_9a, byteLength: 5 });
+	deepEqual(reader.next(DataType.int({ signed: true, byteLength: 6 })), {
+		value: -0x12_34_56_78_9a_bc,
+		byteLength: 6,
+	});
+});
+
+test('int big endian', ({ deepEqual }) => {
+	const reader = new BinaryReader(
+		new Uint8Array([
+			...intBytesBE(-0x12),
+			...intBytesBE(-0x12_34),
+			...intBytesBE(-0x12_34_56),
+			...intBytesBE(-0x12_34_56_78),
+			...intBytesBE(-0x12_34_56_78_9a),
+			...intBytesBE(-0x12_34_56_78_9a_bc),
+		]),
+		ByteOrder.BigEndian,
+	);
+
+	deepEqual(reader.next(DataType.int({ signed: true, byteLength: 1 })), { value: -0x12, byteLength: 1 });
+	deepEqual(reader.next(DataType.int({ signed: true, byteLength: 2 })), { value: -0x12_34, byteLength: 2 });
+	deepEqual(reader.next(DataType.int({ signed: true, byteLength: 3 })), { value: -0x12_34_56, byteLength: 3 });
+	deepEqual(reader.next(DataType.int({ signed: true, byteLength: 4 })), { value: -0x12_34_56_78, byteLength: 4 });
+	deepEqual(reader.next(DataType.int({ signed: true, byteLength: 5 })), { value: -0x12_34_56_78_9a, byteLength: 5 });
+	deepEqual(reader.next(DataType.int({ signed: true, byteLength: 6 })), {
+		value: -0x12_34_56_78_9a_bc,
+		byteLength: 6,
+	});
+});
+
+test('biguint little endian', ({ deepEqual }) => {
+	const reader = new BinaryReader(
+		new Uint8Array([
+			...uintBytesLE(0x12n),
+			...uintBytesLE(0x12_34_56_78_9a_bc_den),
+			...uintBytesLE(0x12_34_56_78_9a_bc_de_f0n),
+			...uintBytesLE(0x12_34_56_78_9a_bc_de_f0_12_34_56_78_9a_bc_de_f0n),
+		]),
+		ByteOrder.LittleEndian,
+	);
+
+	deepEqual(reader.next(DataType.bigint({ signed: false, byteLength: 1 })), { value: 0x12n, byteLength: 1 });
+	deepEqual(reader.next(DataType.bigint({ signed: false, byteLength: 7 })), {
+		value: 0x12_34_56_78_9a_bc_den,
+		byteLength: 7,
+	});
+	deepEqual(reader.next(DataType.bigint({ signed: false, byteLength: 8 })), {
+		value: 0x12_34_56_78_9a_bc_de_f0n,
+		byteLength: 8,
+	});
+	deepEqual(reader.next(DataType.bigint({ signed: false, byteLength: 16 })), {
+		value: 0x12_34_56_78_9a_bc_de_f0_12_34_56_78_9a_bc_de_f0n,
+		byteLength: 16,
+	});
+});
+
+test('biguint big endian', ({ deepEqual }) => {
+	const reader = new BinaryReader(
+		new Uint8Array([
+			...uintBytesBE(0x12n),
+			...uintBytesBE(0x12_34_56_78_9a_bc_den),
+			...uintBytesBE(0x12_34_56_78_9a_bc_de_f0n),
+			...uintBytesBE(0x12_34_56_78_9a_bc_de_f0_12_34_56_78_9a_bc_de_f0n),
+		]),
+		ByteOrder.BigEndian,
+	);
+
+	deepEqual(reader.next(DataType.bigint({ signed: false, byteLength: 1 })), { value: 0x12n, byteLength: 1 });
+	deepEqual(reader.next(DataType.bigint({ signed: false, byteLength: 7 })), {
+		value: 0x12_34_56_78_9a_bc_den,
+		byteLength: 7,
+	});
+	deepEqual(reader.next(DataType.bigint({ signed: false, byteLength: 8 })), {
+		value: 0x12_34_56_78_9a_bc_de_f0n,
+		byteLength: 8,
+	});
+	deepEqual(reader.next(DataType.bigint({ signed: false, byteLength: 16 })), {
+		value: 0x12_34_56_78_9a_bc_de_f0_12_34_56_78_9a_bc_de_f0n,
+		byteLength: 16,
+	});
+});
+
+test('bigint little endian', ({ deepEqual }) => {
+	const reader = new BinaryReader(
+		new Uint8Array([
+			...intBytesLE(-0x12n),
+			...intBytesLE(-0x12_34_56_78_9a_bc_den),
+			...intBytesLE(-0x12_34_56_78_9a_bc_de_f0n),
+			...intBytesLE(-0x12_34_56_78_9a_bc_de_f0_12_34_56_78_9a_bc_de_f0n),
+		]),
+		ByteOrder.LittleEndian,
+	);
+
+	deepEqual(reader.next(DataType.bigint({ signed: true, byteLength: 1 })), { value: -0x12n, byteLength: 1 });
+	deepEqual(reader.next(DataType.bigint({ signed: true, byteLength: 7 })), {
+		value: -0x12_34_56_78_9a_bc_den,
+		byteLength: 7,
+	});
+	deepEqual(reader.next(DataType.bigint({ signed: true, byteLength: 8 })), {
+		value: -0x12_34_56_78_9a_bc_de_f0n,
+		byteLength: 8,
+	});
+	deepEqual(reader.next(DataType.bigint({ signed: true, byteLength: 16 })), {
+		value: -0x12_34_56_78_9a_bc_de_f0_12_34_56_78_9a_bc_de_f0n,
+		byteLength: 16,
+	});
+});
+
+test('bigint big endian', ({ deepEqual }) => {
+	const reader = new BinaryReader(
+		new Uint8Array([
+			...intBytesBE(-0x12n),
+			...intBytesBE(-0x12_34_56_78_9a_bc_den),
+			...intBytesBE(-0x12_34_56_78_9a_bc_de_f0n),
+			...intBytesBE(-0x12_34_56_78_9a_bc_de_f0_12_34_56_78_9a_bc_de_f0n),
+		]),
+		ByteOrder.BigEndian,
+	);
+
+	deepEqual(reader.next(DataType.bigint({ signed: true, byteLength: 1 })), { value: -0x12n, byteLength: 1 });
+	deepEqual(reader.next(DataType.bigint({ signed: true, byteLength: 7 })), {
+		value: -0x12_34_56_78_9a_bc_den,
+		byteLength: 7,
+	});
+	deepEqual(reader.next(DataType.bigint({ signed: true, byteLength: 8 })), {
+		value: -0x12_34_56_78_9a_bc_de_f0n,
+		byteLength: 8,
+	});
+	deepEqual(reader.next(DataType.bigint({ signed: true, byteLength: 16 })), {
+		value: -0x12_34_56_78_9a_bc_de_f0_12_34_56_78_9a_bc_de_f0n,
+		byteLength: 16,
+	});
+});
+
+test('int mixed endianness', ({ deepEqual }) => {
+	const reader = new BinaryReader(new Uint8Array([...uintBytesBE(0x1234), ...uintBytesLE(0x1234)]));
+
+	deepEqual(reader.next(DataType.int({ signed: false, byteLength: 2 }, ByteOrder.BigEndian)), {
+		value: 0x1234,
+		byteLength: 2,
+	});
+	deepEqual(reader.next(DataType.int({ signed: false, byteLength: 2 }, ByteOrder.LittleEndian)), {
+		value: 0x1234,
+		byteLength: 2,
+	});
+});
+
+test('int out of bounds', ({ deepEqual, is, throws }) => {
+	const reader = new BinaryReader(new Uint8Array([0x00]), ByteOrder.BigEndian);
+	const error = throws<ReadError>(() => reader.next(DataType.Uint16), { instanceOf: ReadError });
+	deepEqual(error?.bytes, reader.buffer);
+	is(reader.offset, 0);
+});
+
+test('float little endian', ({ deepEqual }) => {
+	const view = new DataView(new ArrayBuffer(24));
+	const reader = new BinaryReader(new Uint8Array(view.buffer), ByteOrder.LittleEndian);
+
+	view.setFloat32(0, 1 / 2 ** 6, true);
+	view.setFloat32(4, -1 / 2 ** 6, true);
+	view.setFloat64(8, 1 / 2 ** 15, true);
+	view.setFloat64(16, -1 / 2 ** 15, true);
+
+	deepEqual(reader.next(DataType.Float32), { value: 1 / 2 ** 6, byteLength: 4 });
+	deepEqual(reader.next(DataType.Float32), { value: -1 / 2 ** 6, byteLength: 4 });
+	deepEqual(reader.next(DataType.Float64), { value: 1 / 2 ** 15, byteLength: 8 });
+	deepEqual(reader.next(DataType.Float64), { value: -1 / 2 ** 15, byteLength: 8 });
+});
+
+test('float big endian', ({ deepEqual }) => {
+	const view = new DataView(new ArrayBuffer(24));
+	const reader = new BinaryReader(new Uint8Array(view.buffer), ByteOrder.BigEndian);
+
+	view.setFloat32(0, 1 / 2 ** 6, false);
+	view.setFloat32(4, -1 / 2 ** 6, false);
+	view.setFloat64(8, 1 / 2 ** 15, false);
+	view.setFloat64(16, -1 / 2 ** 15, false);
+
+	deepEqual(reader.next(DataType.Float32), { value: 1 / 2 ** 6, byteLength: 4 });
+	deepEqual(reader.next(DataType.Float32), { value: -1 / 2 ** 6, byteLength: 4 });
+	deepEqual(reader.next(DataType.Float64), { value: 1 / 2 ** 15, byteLength: 8 });
+	deepEqual(reader.next(DataType.Float64), { value: -1 / 2 ** 15, byteLength: 8 });
+});
+
+test('char ascii', ({ deepEqual }) => {
+	const reader = new BinaryReader(new Uint8Array([0x41]));
+
+	deepEqual(reader.next(DataType.char(Encoding.ASCII)), { value: 'A', byteLength: 1 });
+});
+
+test('char utf-8 valid', ({ deepEqual }) => {
+	const type = DataType.char(Encoding.UTF8);
+
+	const valid = new BinaryReader(
+		new Uint8Array([
+			...[0x7f],
+			...[0xc2, 0x80],
+			...[0xdf, 0xbf],
+			...[0xe0, 0xa0, 0x80],
+			...[0xed, 0x9f, 0xbf],
+			...[0xee, 0x80, 0x80],
+			...[0xef, 0xbf, 0xbf],
+			...[0xf0, 0x90, 0x80, 0x80],
+			...[0xf4, 0x8f, 0xbf, 0xbf],
+		]),
+	);
+
+	deepEqual(valid.next(type), { value: String.fromCodePoint(0x7f), byteLength: 1 });
+	deepEqual(valid.next(type), { value: String.fromCodePoint(0x80), byteLength: 2 });
+	deepEqual(valid.next(type), { value: String.fromCodePoint(0x07ff), byteLength: 2 });
+	deepEqual(valid.next(type), { value: String.fromCodePoint(0x0800), byteLength: 3 });
+	deepEqual(valid.next(type), { value: String.fromCodePoint(0xd7ff), byteLength: 3 });
+	deepEqual(valid.next(type), { value: String.fromCodePoint(0xe000), byteLength: 3 });
+	deepEqual(valid.next(type), { value: String.fromCodePoint(0xffff), byteLength: 3 });
+	deepEqual(valid.next(type), { value: String.fromCodePoint(0x010000), byteLength: 4 });
+	deepEqual(valid.next(type), { value: String.fromCodePoint(0x10ffff), byteLength: 4 });
+});
+
+test('char utf-8 invalid', ({ deepEqual, is, throws }) => {
+	const type = DataType.char(Encoding.UTF8);
+
+	const reader = new BinaryReader(
+		new Uint8Array([
+			...[0x80],
+			...[0xbf],
+			...[0xc0],
+			...[0xc1],
+			...[0xc2, 0x7f],
+			...[0xc2, 0xc0],
+			...[0xe0, 0x80, 0x80],
+			...[0xe0, 0x9f, 0x80],
+			...[0xed, 0xa0, 0x80],
+			...[0xf0, 0x8f, 0x80, 0x80],
+			...[0xf4, 0x90, 0x80, 0x80],
+		]),
+	);
+
+	const expectedError = (start: number, end: number) =>
+		new ReadError('invalid utf-8 bytes', type, reader.buffer.slice(start, end));
+
+	deepEqual(
+		throws(() => reader.next(type)),
+		expectedError(0, 1),
+	);
+
+	is(reader.offset, 0);
+	reader.seek(1);
+
+	deepEqual(
+		throws(() => reader.next(type)),
+		expectedError(1, 2),
+	);
+
+	is(reader.offset, 1);
+	reader.seek(2);
+
+	deepEqual(
+		throws(() => reader.next(type)),
+		expectedError(2, 3),
+	);
+
+	is(reader.offset, 2);
+	reader.seek(3);
+
+	deepEqual(
+		throws(() => reader.next(type)),
+		expectedError(3, 4),
+	);
+
+	is(reader.offset, 3);
+	reader.seek(4);
+
+	deepEqual(
+		throws(() => reader.next(type)),
+		expectedError(4, 6),
+	);
+
+	is(reader.offset, 4);
+	reader.seek(6);
+
+	deepEqual(
+		throws(() => reader.next(type)),
+		expectedError(6, 8),
+	);
+
+	is(reader.offset, 6);
+	reader.seek(8);
+
+	deepEqual(
+		throws(() => reader.next(type)),
+		expectedError(8, 11),
+	);
+
+	is(reader.offset, 8);
+	reader.seek(11);
+
+	deepEqual(
+		throws(() => reader.next(type)),
+		expectedError(11, 14),
+	);
+
+	is(reader.offset, 11);
+	reader.seek(14);
+
+	deepEqual(
+		throws(() => reader.next(type)),
+		expectedError(14, 17),
+	);
+
+	is(reader.offset, 14);
+	reader.seek(17);
+
+	deepEqual(
+		throws(() => reader.next(type)),
+		expectedError(17, 21),
+	);
+
+	is(reader.offset, 17);
+	reader.seek(21);
+
+	deepEqual(
+		throws(() => reader.next(type)),
+		expectedError(21, 25),
+	);
+
+	is(reader.offset, 21);
+});
+
+test('char utf-16', ({ deepEqual, throws }) => {
+	const type = DataType.char(Encoding.UTF16, ByteOrder.BigEndian);
+
+	const reader = new BinaryReader(
+		new Uint8Array([...[0xd7, 0xff], ...[0xe0, 0x00], ...[0xd8, 0x00, 0xdc, 0x00], ...[0xdb, 0xff, 0xdf, 0xff]]),
+	);
+
+	deepEqual(reader.next(type), { value: String.fromCodePoint(0xd7ff), byteLength: 2 });
+	deepEqual(reader.next(type), { value: String.fromCodePoint(0xe000), byteLength: 2 });
+	deepEqual(reader.next(type), { value: String.fromCodePoint(0x10000), byteLength: 4 });
+	deepEqual(reader.next(type), { value: String.fromCodePoint(0x10ffff), byteLength: 4 });
+
+	const message = 'invalid utf-16 bytes';
+
+	deepEqual(
+		throws(() => new BinaryReader(new Uint8Array([0xd8, 0x00, 0xd7, 0xff])).next(type)),
+		new ReadError(message, type, new Uint8Array([0xd8, 0x00, 0xd7, 0xff])),
+	);
+
+	deepEqual(
+		throws(() => new BinaryReader(new Uint8Array([0xdc, 0x00, 0xd7, 0xff])).next(type)),
+		new ReadError(message, type, new Uint8Array([0xdc, 0x00, 0xd7, 0xff])),
+	);
+
+	deepEqual(
+		throws(() => new BinaryReader(new Uint8Array([0xdc, 0x00, 0xd8, 0x00])).next(type)),
+		new ReadError(message, type, new Uint8Array([0xdc, 0x00, 0xd8, 0x00])),
+	);
+});
+
+test('char utf-32', ({ deepEqual, throws }) => {
+	const type = DataType.char(Encoding.UTF32, ByteOrder.BigEndian);
+
+	const reader = new BinaryReader(new Uint8Array([...[0x00, 0x00, 0xd7, 0xff], ...[0x00, 0x00, 0xe0, 0x00]]));
+
+	deepEqual(reader.next(type), { value: String.fromCodePoint(0xd7ff), byteLength: 4 });
+	deepEqual(reader.next(type), { value: String.fromCodePoint(0xe000), byteLength: 4 });
+
+	const message = 'invalid utf-32 code point';
+
+	deepEqual(
+		throws(() => new BinaryReader(new Uint8Array([0x00, 0x00, 0xd8, 0x00])).next(type)),
+		new ReadError(message, type, new Uint8Array([0x00, 0x00, 0xd8, 0x00])),
+	);
+
+	deepEqual(
+		throws(() => new BinaryReader(new Uint8Array([0x00, 0x00, 0xdf, 0xff])).next(type)),
+		new ReadError(message, type, new Uint8Array([0x00, 0x00, 0xdf, 0xff])),
+	);
+});
+
+test('string', ({ deepEqual, throws }) => {
+	const ascii = DataType.string(Encoding.ASCII);
+
+	const reader = new BinaryReader(new Uint8Array([0x31, 0x32, 0x33, 0x00, 0x61, 0x62, 0x63]));
+
+	deepEqual(reader.next(ascii), { value: '123', byteLength: 4 });
+	deepEqual(reader.next(ascii), { value: 'abc', byteLength: 3 });
+
+	reader.seek(0);
+
+	const ascii3 = DataType.string(Encoding.ASCII, { terminator: '3' });
+
+	deepEqual(reader.next(ascii3), { value: '12', byteLength: 3 });
+	deepEqual(reader.next(ascii3), { value: '\0abc', byteLength: 4 });
+
+	throws(() => new BinaryReader(new Uint8Array([0xe0, 0xa0])).next(DataType.string(Encoding.UTF8)));
+});
+
+test('array', ({ deepEqual }) => {
+	const reader = new BinaryReader(new Uint8Array([0x00, 0x01, 0x31, 0x32]));
+	deepEqual(reader.next(DataType.array(DataType.Uint8, 2)), { value: [0, 1], byteLength: 2 });
+	deepEqual(reader.next(DataType.array(DataType.char(Encoding.ASCII), 2)), { value: '12', byteLength: 2 });
+});
+
+test('struct', ({ deepEqual }) => {
+	const reader = new BinaryReader(new Uint8Array([...[0x00], ...[0x41, 0x42, 0x00], ...[0x12, 0x34]]));
+
+	const struct = {
+		boolean: DataType.Boolean,
+		string: DataType.string(Encoding.ASCII),
+		int: DataType.int({ signed: false, byteLength: 2 }, ByteOrder.BigEndian),
+	};
+
+	const expected = {
+		boolean: { value: false, byteLength: 1 },
+		string: { value: 'AB', byteLength: 3 },
+		int: { value: 0x1234, byteLength: 2 },
+	};
+
+	deepEqual(reader.next(struct), expected);
+
+	reader.seek(0);
+
+	deepEqual(reader.next(Object.values(struct)), Object.values(expected));
+});
