@@ -2,11 +2,11 @@
 
 import test from 'ava';
 
-import { BinaryReader } from './binary-reader';
-import { ByteOrder } from './byte-order';
-import { DataType } from './data/data-type';
-import { Encoding } from './encoding';
-import { ReadError } from './read-error';
+import { BinaryReader } from './binary-reader.js';
+import { ByteOrder } from './byte-order.js';
+import { DataType } from './data/data-type.js';
+import { Encoding } from './encoding.js';
+import { ReadError } from './read-error.js';
 
 function byteList(value: number | bigint, signed: boolean, byteOrder: ByteOrder) {
 	const hex = (() => {
@@ -494,10 +494,19 @@ test('string', ({ deepEqual, throws }) => {
 
 	reader.seek(0);
 
-	const ascii3 = DataType.string(Encoding.ASCII, { terminator: '3' });
+	const asciiTerminate3 = DataType.string(Encoding.ASCII, { terminator: '3' });
 
-	deepEqual(reader.next(ascii3), { value: '12', byteLength: 3 });
-	deepEqual(reader.next(ascii3), { value: '\0abc', byteLength: 4 });
+	deepEqual(reader.next(asciiTerminate3), { value: '12', byteLength: 3 });
+	deepEqual(reader.next(asciiTerminate3), { value: '\0abc', byteLength: 4 });
+
+	reader.seek(0);
+
+	const asciiCount2 = DataType.string(Encoding.ASCII, { count: 2 });
+
+	deepEqual(reader.next(asciiCount2), { value: '12', byteLength: 2 });
+	deepEqual(reader.next(asciiCount2), { value: '3\0', byteLength: 2 });
+	deepEqual(reader.next(asciiCount2), { value: 'ab', byteLength: 2 });
+	throws(() => reader.next(asciiCount2));
 
 	throws(() => new BinaryReader(new Uint8Array([0xe0, 0xa0])).next(DataType.string(Encoding.UTF8)));
 });
@@ -505,7 +514,7 @@ test('string', ({ deepEqual, throws }) => {
 test('array', ({ deepEqual }) => {
 	const reader = new BinaryReader(new Uint8Array([0x00, 0x01, 0x31, 0x32]));
 	deepEqual(reader.next(DataType.array(DataType.Uint8, 2)), { value: [0, 1], byteLength: 2 });
-	deepEqual(reader.next(DataType.array(DataType.char(Encoding.ASCII), 2)), { value: '12', byteLength: 2 });
+	deepEqual(reader.next(DataType.array(DataType.char(Encoding.ASCII), 2)), { value: ['1', '2'], byteLength: 2 });
 });
 
 test('struct', ({ deepEqual }) => {

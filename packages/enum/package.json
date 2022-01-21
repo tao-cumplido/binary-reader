@@ -1,7 +1,11 @@
 {
 	"name": "@nishin/enum",
 	"version": "0.0.1",
-	"main": "dist/index.js",
+	"type": "module",
+	"exports": {
+		"import": "./dist/esm/index.js",
+		"require": "./dist/cjs/index.cjs"
+	},
 	"types": "src/index.ts",
 	"scripts": {
 		"build": "tsc"

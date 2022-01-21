@@ -4,18 +4,21 @@
 	"workspaces": [
 		"packages/*"
 	],
-	"scripts": {},
+	"scripts": {
+		"build": "tsc --build",
+		"postbuild": "node postbuild.mjs",
+		"test": "npm run build && npm run --workspaces --if-present test"
+	},
 	"devDependencies": {
-		"@types/node": "16.11.19",
+		"@types/node": "16.11.21",
 		"@typescript-eslint/eslint-plugin": "5.9.0",
 		"@typescript-eslint/parser": "5.9.0",
 		"ava": "4.0.1",
 		"cross-env": "7.0.3",
-		"esbuild": "0.14.10",
 		"eslint": "8.6.0",
 		"eslint-plugin-style": "0.2.0",
+		"fast-glob": "3.2.11",
 		"prettier": "2.5.1",
-		"ts-node": "10.4.0",
-		"typescript": "4.5.4"
+		"typescript": "4.5.5"
 	}
 }

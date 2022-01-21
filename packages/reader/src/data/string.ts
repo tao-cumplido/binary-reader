@@ -1,32 +1,34 @@
 import type { Encoding } from '../encoding';
-import { ByteOrder } from '../byte-order';
-import { DataType } from './data-type';
+import { ByteOrder } from '../byte-order.js';
+import { DataType } from './data-type.js';
 
 export class DataString extends DataType {
 	readonly encoding: Encoding;
 	readonly terminator: string;
+	readonly count: number;
 	readonly byteOrder?: ByteOrder;
 
-	constructor(encoding: Encoding, byteOrder?: ByteOrder, terminator = '\0') {
+	constructor(encoding: Encoding, byteOrder?: ByteOrder, { terminator = '\0', count = 0 } = {}) {
 		super();
 		this.encoding = encoding;
 		this.terminator = terminator;
 		this.byteOrder = byteOrder;
+		this.count = count;
 	}
 }
 
 DataType.string = function string(
 	encoding,
-	byteOrderOrTerminator?: ByteOrder | { terminator: string },
+	byteOrderOrTerminatorOrCount?: ByteOrder | { terminator: string } | { count: number },
 	byteOrder?: ByteOrder,
 ) {
-	if (byteOrderOrTerminator instanceof ByteOrder) {
-		return new DataString(encoding, byteOrderOrTerminator);
+	if (byteOrderOrTerminatorOrCount instanceof ByteOrder) {
+		return new DataString(encoding, byteOrderOrTerminatorOrCount);
 	}
 
-	if (byteOrderOrTerminator) {
-		return new DataString(encoding, byteOrder, byteOrderOrTerminator.terminator);
+	if (!byteOrderOrTerminatorOrCount) {
+		return new DataString(encoding);
 	}
 
-	return new DataString(encoding);
+	return new DataString(encoding, byteOrder, byteOrderOrTerminatorOrCount);
 };

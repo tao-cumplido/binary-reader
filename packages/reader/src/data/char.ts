@@ -1,6 +1,6 @@
 import type { ByteOrder } from '../byte-order';
 import type { Encoding } from '../encoding';
-import { DataType } from './data-type';
+import { DataType } from './data-type.js';
 
 export class DataChar extends DataType {
 	readonly encoding: Encoding;

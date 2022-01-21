@@ -1,5 +1,5 @@
-import { assertInt } from '../assert';
-import { DataType } from './data-type';
+import { assertInt } from '../assert.js';
+import { DataType } from './data-type.js';
 
 export class DataArray<T extends DataType> extends DataType {
 	readonly type: T;

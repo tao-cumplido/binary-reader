@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-invalid-void-type */
 
-import { Private } from './private';
+import { Private } from './private.js';
 
 export type EnumFields<T = void> = T extends void
 	? { readonly index?: number }

@@ -32,9 +32,10 @@ export declare namespace DataType {
 	export function boolean(): DataBoolean;
 	export function int({ signed, byteLength }: Public<DataInt>, byteOrder?: ByteOrder): DataInt;
 	export function bigint({ signed, byteLength }: Public<DataBigInt>, byteOrder?: ByteOrder): DataBigInt;
-	export function float({ byteLength }: Public<DataFloat>): DataFloat;
+	export function float({ byteLength }: Public<DataFloat>, byteOrder?: ByteOrder): DataFloat;
 	export function char(encoding: Encoding, byteOrder?: ByteOrder): DataChar;
 	export function string(encoding: Encoding, { terminator }?: { terminator: string }, byteOrder?: ByteOrder): DataString;
+	export function string(encoding: Encoding, { count }?: { count: number }, byteOrder?: ByteOrder): DataString;
 	export function string(encoding: Encoding, byteOrder?: ByteOrder): DataString;
 	export function array<T extends DataType>(type: T, count: number): DataArray<T>;
 }

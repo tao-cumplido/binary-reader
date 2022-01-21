@@ -6,7 +6,7 @@
 		"noImplicitOverride": true,
 		"moduleResolution": "node",
 		"esModuleInterop": true,
-		"module": "commonjs",
+		"module": "esnext",
 		"isolatedModules": true,
 		"target": "esnext",
 		"lib": ["esnext"],

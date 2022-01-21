@@ -1,16 +1,16 @@
-import { repeat } from '.';
-import { assertInt } from './assert';
-import { ByteOrder } from './byte-order';
-import { DataArray } from './data/array';
-import { DataBigInt } from './data/bigint';
-import { DataBoolean } from './data/boolean';
-import { DataChar } from './data/char';
-import { DataType } from './data/data-type';
-import { DataFloat } from './data/float';
-import { DataInt } from './data/int';
-import { DataString } from './data/string';
-import { Encoding } from './encoding';
-import { ReadError } from './read-error';
+import { assertInt } from './assert.js';
+import { ByteOrder } from './byte-order.js';
+import { DataArray } from './data/array.js';
+import { DataBigInt } from './data/bigint.js';
+import { DataBoolean } from './data/boolean.js';
+import { DataChar } from './data/char.js';
+import { DataType } from './data/data-type.js';
+import { DataFloat } from './data/float.js';
+import { DataInt } from './data/int.js';
+import { DataString } from './data/string.js';
+import { Encoding } from './encoding.js';
+import { ReadError } from './read-error.js';
+import { repeat } from './repeat.js';
 
 type ReadWrite<T> = {
 	-readonly [P in keyof T]: T[P];
@@ -25,8 +25,6 @@ export interface DataValue<T> {
 
 export type Read<T extends DataType | Struct> = T extends Struct
 	? { [P in keyof T]: T[P] extends infer D ? (D extends DataType ? Read<D> : T[P]) : T[P] }
-	: T extends DataArray<DataChar>
-	? DataValue<string>
 	: T extends DataArray<infer D>
 	? DataValue<Array<Read<D>['value']>>
 	: T extends DataInt | DataFloat
@@ -66,7 +64,11 @@ export class BinaryReader {
 		this.#byteOrder = byteOrder;
 	}
 
-	readByteOrderMark(offset: number): void {
+	/**
+	 * Reads the byte order mark from the given offset and sets the byte order on the reader instance.
+	 * Advances the read offset by 2 bytes on succes, throws an error otherwise.
+	 */
+	readByteOrderMark(offset = 0): void {
 		assertInt(offset, { min: 0 });
 
 		const byteOrder = ByteOrder.lookupValue(
@@ -82,6 +84,10 @@ export class BinaryReader {
 		this.setByteOrder(byteOrder);
 	}
 
+	/**
+	 * Asserts that the source buffer contains the given magic in ASCII encoding or raw bytes at the given offset.
+	 * Advances the read offset accordingly on succes, throws an error otherwise.
+	 */
 	assertMagic(magic: string | Uint8Array, offset = 0): void {
 		assertInt(offset, { min: 0 });
 
@@ -116,6 +122,9 @@ export class BinaryReader {
 		}
 	}
 
+	/**
+	 * Creates copy of the reader from the current read offset with the given size.
+	 */
 	slice(size: number): BinaryReader {
 		assertInt(size, { min: 0 });
 
@@ -130,21 +139,33 @@ export class BinaryReader {
 		return reader;
 	}
 
+	/**
+	 * Set the read offset.
+	 */
 	seek(offset: number): void {
 		assertInt(offset, { min: 0 });
 		this.#offset = offset;
 	}
 
+	/**
+	 * Advance the read offset by number of bytes given.
+	 */
 	skip(bytes: number): void {
 		assertInt(bytes, { min: 0 });
 		this.#offset += bytes;
 	}
 
+	/**
+	 * Align the read offset to the nearest multiple.
+	 */
 	align(to: number): void {
 		assertInt(to, { min: 0 });
 		this.skip(((-this.#offset % to) + to) % to);
 	}
 
+	/**
+	 * Read the next value of the given type and advance the read offset by numbers of bytes processed.
+	 */
 	next<T extends DataType | Struct>(type: T): Read<T> {
 		/* eslint-disable @typescript-eslint/consistent-type-assertions */
 
@@ -188,13 +209,14 @@ export class BinaryReader {
 			}
 
 			if (type instanceof DataFloat) {
-				if (!this.#byteOrder) {
+				const { byteLength, byteOrder = this.#byteOrder } = type;
+
+				if (!byteOrder) {
 					throw new ReadError(`no byte order specified for reading float value`, type);
 				}
 
-				const { byteLength } = type;
 				const method = byteLength === 4 ? this.#view.getFloat32 : this.#view.getFloat64;
-				const value = method.call(this.#view, this.#offset, this.#byteOrder === ByteOrder.LittleEndian);
+				const value = method.call(this.#view, this.#offset, byteOrder === ByteOrder.LittleEndian);
 
 				this.#offset += byteLength;
 
@@ -315,7 +337,17 @@ export class BinaryReader {
 			}
 
 			if (type instanceof DataString) {
-				const charType = DataType.char(type.encoding, type.byteOrder);
+				const { encoding, byteOrder, terminator, count } = type;
+
+				const charType = DataType.char(encoding, byteOrder);
+
+				if (count > 0) {
+					const { value, byteLength } = this.next(DataType.array(charType, count));
+					return {
+						value: value.join(''),
+						byteLength,
+					} as Read<T>;
+				}
 
 				const result: ReadWrite<DataValue<string>> = {
 					value: '',
@@ -324,13 +356,13 @@ export class BinaryReader {
 
 				let char = this.next(charType);
 
-				while (char.value !== type.terminator && this.#offset < this.#buffer.length) {
+				while (char.value !== terminator && this.#offset < this.#buffer.length) {
 					result.value += char.value;
 					result.byteLength += char.byteLength;
 					char = this.next(charType);
 				}
 
-				if (char.value !== type.terminator) {
+				if (char.value !== terminator) {
 					result.value += char.value;
 				}
 
@@ -340,9 +372,7 @@ export class BinaryReader {
 			}
 
 			if (type instanceof DataArray) {
-				const listValue = repeat(type.count, () => this.next(type.type) as DataValue<unknown>).reduce<
-					ReadWrite<DataValue<unknown[]>>
-				>(
+				return repeat(type.count, () => this.next(type.type) as DataValue<unknown>).reduce<ReadWrite<DataValue<unknown[]>>>(
 					(result, item) => {
 						result.value.push(item.value);
 						result.byteLength += item.byteLength;
@@ -352,16 +382,7 @@ export class BinaryReader {
 						value: [],
 						byteLength: 0,
 					},
-				);
-
-				if (type.type instanceof DataChar) {
-					return {
-						value: listValue.value.join(''),
-						byteLength: listValue.byteLength,
-					} as Read<T>;
-				}
-
-				return listValue as Read<T>;
+				) as Read<T>;
 			}
 
 			if (type instanceof DataType) {

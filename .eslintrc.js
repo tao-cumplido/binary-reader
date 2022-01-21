@@ -4,7 +4,7 @@ const tsConfig = JSON.parse(readFileSync('tsconfig.json', 'utf-8'));
 
 module.exports = {
 	env: {
-		es2020: true,
+		es2021: true,
 	},
 	plugins: ['style'],
 	rules: {
@@ -122,6 +122,7 @@ module.exports = {
 			files: ['*.mjs', 'vite.config.js'],
 			parserOptions: {
 				sourceType: 'module',
+				ecmaVersion: 2022,
 			},
 		},
 		{

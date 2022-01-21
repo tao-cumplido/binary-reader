@@ -1,6 +1,6 @@
 import type { ByteOrder } from '../byte-order';
-import { assertInt } from '../assert';
-import { DataType } from './data-type';
+import { assertInt } from '../assert.js';
+import { DataType } from './data-type.js';
 
 export type SafeIntBytes = 1 | 2 | 3 | 4 | 5 | 6;
 
