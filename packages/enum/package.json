@@ -1,6 +1,17 @@
 {
 	"name": "@nishin/enum",
-	"version": "0.0.1",
+	"version": "0.1.0",
+	"description": "Simple enum implementation for JavaScript",
+	"keywords": [
+		"enum",
+		"javascript",
+		"typescript",
+		"esm"
+	],
+	"license": "ISC",
+	"author": "Tao Cumplido",
+	"repository": "https://github.com/tao-cumplido/binary-reader/tree/main/packages/enum",
+	"bugs": "https://github.com/tao-cumplido/binary-reader/issues",
 	"type": "module",
 	"exports": {
 		"import": "./dist/esm/index.js",
@@ -9,8 +20,5 @@
 	"types": "src/index.ts",
 	"scripts": {
 		"build": "tsc"
-	},
-	"dependencies": {
-		"tslib": "^2.3.1"
 	}
 }

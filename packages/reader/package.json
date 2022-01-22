@@ -1,6 +1,20 @@
 {
 	"name": "@nishin/reader",
-	"version": "0.0.1",
+	"version": "0.1.0",
+	"description": "Simple enum implementation for JavaScript",
+	"keywords": [
+		"binary",
+		"data",
+		"reader",
+		"hex",
+		"javascript",
+		"typescript",
+		"esm"
+	],
+	"license": "ISC",
+	"author": "Tao Cumplido",
+	"repository": "https://github.com/tao-cumplido/binary-reader/tree/main/packages/reader",
+	"bugs": "https://github.com/tao-cumplido/binary-reader/issues",
 	"type": "module",
 	"exports": {
 		"import": "./dist/esm/index.js",
@@ -12,7 +26,6 @@
 		"test": "cross-env TS_NODE_PROJECT=tsconfig.test.json ava"
 	},
 	"dependencies": {
-		"@nishin/enum": "^0.0.1",
-		"tslib": "^2.3.1"
+		"@nishin/enum": "^0.1.0"
 	}
 }
