@@ -268,4 +268,8 @@ export class AsyncReader {
 
 		/* eslint-enable @typescript-eslint/consistent-type-assertions */
 	}
+
+	async close(): Promise<void> {
+		await this.#fileHandle.close();
+	}
 }
