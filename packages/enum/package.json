@@ -1,6 +1,6 @@
 {
 	"name": "@nishin/enum",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Simple enum implementation for JavaScript",
 	"keywords": [
 		"enum",
@@ -14,10 +14,18 @@
 	"bugs": "https://github.com/tao-cumplido/binary-reader/issues",
 	"type": "module",
 	"exports": {
-		"import": "./dist/esm/index.js",
-		"require": "./dist/cjs/index.cjs"
+		".": {
+			"import": "./dist/esm/index.js",
+			"require": "./dist/cjs/index.cjs"
+		}
 	},
-	"types": "src/index.ts",
+	"typesVersions": {
+		"*": {
+			"*": [
+				"src/index.ts"
+			]
+		}
+	},
 	"scripts": {
 		"build": "tsc"
 	}

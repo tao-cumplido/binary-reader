@@ -1,7 +1,7 @@
 {
 	"name": "@nishin/reader",
-	"version": "0.1.0",
-	"description": "Simple enum implementation for JavaScript",
+	"version": "0.1.1",
+	"description": "Read various data types from a byte array in a streamlined way",
 	"keywords": [
 		"binary",
 		"data",
@@ -17,15 +17,37 @@
 	"bugs": "https://github.com/tao-cumplido/binary-reader/issues",
 	"type": "module",
 	"exports": {
-		"import": "./dist/esm/index.js",
-		"require": "./dist/cjs/index.cjs"
+		".": {
+			"import": "./dist/esm/index.js",
+			"require": "./dist/cjs/index.cjs"
+		},
+		"./data": {
+			"import": "./dist/esm/data/index.js",
+			"require": "./dist/cjs/data/index.cjs"
+		},
+		"./assert": {
+			"import": "./dist/esm/assert.js",
+			"require": "./dist/cjs/assert.cjs"
+		}
 	},
-	"types": "src/index.ts",
+	"typesVersions": {
+		"*": {
+			"*": [
+				"src/index.ts"
+			],
+			"data": [
+				"src/data/index.ts"
+			],
+			"assert": [
+				"src/assert.ts"
+			]
+		}
+	},
 	"scripts": {
 		"build": "tsc",
-		"test": "cross-env TS_NODE_PROJECT=tsconfig.test.json ava"
+		"test": "ava"
 	},
 	"dependencies": {
-		"@nishin/enum": "^0.1.0"
+		"@nishin/enum": "~0.1.0"
 	}
 }

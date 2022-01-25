@@ -8,8 +8,11 @@ import type { DataBoolean } from './boolean';
 import type { DataChar } from './char';
 import type { DataFloat } from './float';
 import type { DataInt } from './int';
-import type { Public } from './public';
 import type { DataString } from './string';
+
+type Public<T> = {
+	readonly [P in keyof T]: T[P];
+};
 
 const id = Symbol('DataType');
 

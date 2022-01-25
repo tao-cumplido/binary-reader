@@ -1,13 +1,15 @@
 import { assertInt } from './assert.js';
 import { ByteOrder } from './byte-order.js';
-import { DataArray } from './data/array.js';
-import { DataBigInt } from './data/bigint.js';
-import { DataBoolean } from './data/boolean.js';
-import { DataChar } from './data/char.js';
-import { DataType } from './data/data-type.js';
-import { DataFloat } from './data/float.js';
-import { DataInt } from './data/int.js';
-import { DataString } from './data/string.js';
+import {
+	DataArray,
+	DataBigInt,
+	DataBoolean,
+	DataChar,
+	DataFloat,
+	DataInt,
+	DataString,
+	DataType,
+} from './data/index.js';
 import { Encoding } from './encoding.js';
 import { ReadError } from './read-error.js';
 import { repeat } from './repeat.js';
@@ -68,8 +70,8 @@ export class BinaryReader {
 	 * Reads the byte order mark from the given offset and sets the byte order on the reader instance.
 	 * Advances the read offset by 2 bytes on succes, throws an error otherwise.
 	 */
-	readByteOrderMark(offset = 0): void {
-		assertInt(offset, { min: 0 });
+	readByteOrderMark(offset = this.#offset): void {
+		this.seek(offset);
 
 		const byteOrder = ByteOrder.lookupValue(
 			this.next(DataType.int({ signed: false, byteLength: 2 }, ByteOrder.BigEndian)).value,
@@ -79,8 +81,6 @@ export class BinaryReader {
 			throw new TypeError(`invalid byte order mark`);
 		}
 
-		this.#offset = offset + 2;
-
 		this.setByteOrder(byteOrder);
 	}
 
@@ -88,37 +88,27 @@ export class BinaryReader {
 	 * Asserts that the source buffer contains the given magic in ASCII encoding or raw bytes at the given offset.
 	 * Advances the read offset accordingly on succes, throws an error otherwise.
 	 */
-	assertMagic(magic: string | Uint8Array, offset = 0): void {
-		assertInt(offset, { min: 0 });
+	assertMagic(magic: string | Uint8Array, offset = this.#offset): void {
+		this.seek(offset);
 
-		this.#offset = offset + magic.length;
-
-		const source = this.#buffer.slice(offset, this.offset);
-
-		const check = (() => {
-			if (source.length !== magic.length) {
-				return false;
+		if (typeof magic === 'string') {
+			const { value } = this.next(DataType.string(Encoding.ASCII, { count: magic.length }));
+			if (magic !== value) {
+				throw new TypeError(`invalid magic: expected '${magic}', got '${value}`);
 			}
+		} else {
+			const { value } = this.next(DataType.array(DataType.Uint8, magic.length));
 
-			if (typeof magic === 'string') {
-				return magic === [...source].map((byte) => String.fromCharCode(byte)).join('');
-			}
-
-			if (source === magic) {
-				return true;
-			}
-
-			for (let i = 0; i < source.length; i++) {
-				if (source[i] !== magic[i]) {
-					return false;
+			for (let i = 0; i < value.length; i++) {
+				if (value[i] !== magic[i]) {
+					throw new TypeError(
+						// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+						`invalid magic: expected 0x${magic[i]?.toString(16).padStart(2, '0')} at position ${i}, got 0x${value[i]
+							?.toString(16)
+							.padStart(2, '0')}`,
+					);
 				}
 			}
-
-			return true;
-		})();
-
-		if (!check) {
-			throw new TypeError(`invalid magic`);
 		}
 	}
 
@@ -126,16 +116,8 @@ export class BinaryReader {
 	 * Creates copy of the reader from the current read offset with the given size.
 	 */
 	slice(size: number): BinaryReader {
-		assertInt(size, { min: 0 });
-
-		const reader = new BinaryReader(this.#buffer.slice(this.#offset, this.#offset + size));
-
-		if (this.#byteOrder) {
-			reader.setByteOrder(this.#byteOrder);
-		}
-
 		this.skip(size);
-
+		const reader = new BinaryReader(this.#buffer.slice(this.#offset - size, this.#offset), this.#byteOrder);
 		return reader;
 	}
 
@@ -143,7 +125,7 @@ export class BinaryReader {
 	 * Set the read offset.
 	 */
 	seek(offset: number): void {
-		assertInt(offset, { min: 0 });
+		assertInt(offset, { min: 0, max: this.#buffer.length - 1 });
 		this.#offset = offset;
 	}
 
@@ -152,7 +134,7 @@ export class BinaryReader {
 	 */
 	skip(bytes: number): void {
 		assertInt(bytes, { min: 0 });
-		this.#offset += bytes;
+		this.seek(this.#offset + bytes);
 	}
 
 	/**
