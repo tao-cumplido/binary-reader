@@ -1,0 +1,41 @@
+{
+	"name": "@nishin/async-reader",
+	"version": "0.1.0",
+	"description": "Read various data types from a Node.JS file handle in a streamlined way",
+	"keywords": [
+		"binary",
+		"data",
+		"reader",
+		"async",
+		"large files",
+		"hex",
+		"javascript",
+		"typescript",
+		"esm"
+	],
+	"license": "ISC",
+	"author": "Tao Cumplido",
+	"repository": "https://github.com/tao-cumplido/binary-reader/tree/main/packages/async-reader",
+	"bugs": "https://github.com/tao-cumplido/binary-reader/issues",
+	"type": "module",
+	"exports": {
+		".": {
+			"import": "./dist/esm/index.js",
+			"require": "./dist/cjs/index.cjs"
+		}
+	},
+	"typesVersions": {
+		"*": {
+			"*": [
+				"src/index.ts"
+			]
+		}
+	},
+	"scripts": {
+		"build": "tsc",
+		"test": "ava"
+	},
+	"dependencies": {
+		"@nishin/reader": "~0.1.1"
+	}
+}

@@ -5,6 +5,9 @@
 		{ "path": "packages/enum/tsconfig.cjs.json" },
 		{ "path": "packages/reader/tsconfig.json" },
 		{ "path": "packages/reader/tsconfig.cjs.json" },
-		{ "path": "packages/reader/tsconfig.test.json" }
+		{ "path": "packages/reader/tsconfig.test.json" },
+		{ "path": "packages/async-reader/tsconfig.json" },
+		{ "path": "packages/async-reader/tsconfig.cjs.json" },
+		{ "path": "packages/async-reader/tsconfig.test.json" }
 	]
 }
