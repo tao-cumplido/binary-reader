@@ -2,12 +2,12 @@
 
 import { Private } from './private.js';
 
-export type EnumFields<T = void> = T extends void
-	? { readonly index?: number }
-	: {
-			readonly index?: number;
-			readonly value?: T;
-	  };
+interface EnumIdentifier {
+	readonly index?: number;
+	readonly name?: string;
+}
+
+export type EnumFields<T = void> = T extends void ? EnumIdentifier : EnumIdentifier & { readonly value?: T };
 
 // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/explicit-module-boundary-types
 export const Enum = <Brand extends string, Value = void>(id: symbol) => {
@@ -31,20 +31,30 @@ export const Enum = <Brand extends string, Value = void>(id: symbol) => {
 			return valueMap.get(value);
 		}
 
-		#index: number;
 		// @ts-expect-error
 		#value: Value;
-
-		get index(): number {
-			return this.#index;
-		}
+		#index: number;
+		#name?: string;
 
 		get value(): Value {
 			return this.#value;
 		}
 
+		get index(): number {
+			return this.#index;
+		}
+
+		get name(): string | undefined {
+			if (!this.#name) {
+				const entry = Object.entries(this.constructor).find(([_, item]) => item === this);
+				this.#name = entry?.[0];
+			}
+
+			return this.#name;
+		}
+
 		// @ts-expect-error
-		constructor(check: symbol, { index, value }: EnumFields<Value> = {}) {
+		constructor(check: symbol, { index, name, value }: EnumFields<Value> = {}) {
 			if (new.target === Enum) {
 				throw new Error(`Enum is an abstract class`);
 			}
@@ -68,6 +78,7 @@ export const Enum = <Brand extends string, Value = void>(id: symbol) => {
 			}
 
 			this.#index = currentIndex;
+			this.#name = name;
 
 			indexMap.set(currentIndex++, this);
 
