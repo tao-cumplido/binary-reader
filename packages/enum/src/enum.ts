@@ -2,7 +2,7 @@
 
 import { Private } from './private.js';
 
-interface EnumIdentifier {
+export interface EnumIdentifier {
 	readonly index?: number;
 	readonly name?: string;
 }
