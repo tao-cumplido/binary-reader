@@ -65,5 +65,5 @@ class AsyncReader {
 }
 ```
 
-[npm-image]: https://img.shields.io/npm/v/@nishin/reader.svg
-[npm-url]: https://npmjs.org/package/@nishin/reader
+[npm-image]: https://img.shields.io/npm/v/@nishin/async-reader.svg
+[npm-url]: https://npmjs.org/package/@nishin/async-reader

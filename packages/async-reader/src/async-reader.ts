@@ -1,5 +1,5 @@
-import type { Stats } from 'fs';
 import type { FileHandle } from 'fs/promises';
+import { fstatSync } from 'fs';
 
 import type { DataValue, Read, Struct } from '@nishin/reader';
 import { BinaryReader, ByteOrder, DataType, Encoding } from '@nishin/reader';
@@ -20,25 +20,17 @@ export class AsyncReader {
 	#fileHandle: FileHandle;
 	#bufferSize: number;
 	#reader: BinaryReader;
+	#byteLength: number;
 
 	#dataRead = false;
 	#offset = 0;
 
-	#stats?: Stats;
-
-	get #fileSize(): Promise<number> {
-		if (!this.#stats) {
-			return this.#fileHandle.stat().then((stats) => {
-				this.#stats = stats;
-				return stats.size;
-			});
-		}
-
-		return Promise.resolve(this.#stats.size);
-	}
-
 	get offset(): number {
 		return this.#offset;
+	}
+
+	get byteLength(): number {
+		return this.#byteLength;
 	}
 
 	get byteOrder(): ByteOrder | undefined {
@@ -55,6 +47,7 @@ export class AsyncReader {
 		const byteOrder = byteOrderOrConfig instanceof ByteOrder ? byteOrderOrConfig : undefined;
 
 		this.#bufferSize = byteOrderOrConfig instanceof ByteOrder ? bufferSize : byteOrderOrConfig?.bufferSize ?? bufferSize;
+		this.#byteLength = fstatSync(fileHandle.fd).size;
 
 		this.#fileHandle = fileHandle;
 		this.#reader = new BinaryReader(Buffer.alloc(this.#bufferSize), byteOrder);
@@ -64,11 +57,7 @@ export class AsyncReader {
 		if (!this.#dataRead || this.#reader.offset + delta < 0 || this.#reader.offset + delta >= this.#reader.buffer.length) {
 			this.#reader = new BinaryReader(Buffer.alloc(this.#bufferSize), this.byteOrder);
 
-			const { bytesRead } = await this.#fileHandle.read({
-				buffer: this.#reader.buffer,
-				length: this.#bufferSize,
-				position,
-			});
+			const { bytesRead } = await this.#fileHandle.read(this.#reader.buffer, 0, this.#bufferSize, position);
 
 			if (bytesRead < this.#bufferSize) {
 				this.#reader = this.#reader.slice(bytesRead);
@@ -96,7 +85,7 @@ export class AsyncReader {
 	}
 
 	async seek(offset: number): Promise<void> {
-		assertInt(offset, { min: 0, max: (await this.#fileSize) - 1 });
+		assertInt(offset, { min: 0, max: this.#byteLength - 1 });
 		await this.#prepareOffset(offset - this.#offset);
 		this.#offset = offset;
 	}
@@ -198,7 +187,7 @@ export class AsyncReader {
 				let char = await this.next(charType);
 
 				// eslint-disable-next-line no-await-in-loop
-				while (char.value !== terminator && this.#offset < (await this.#fileSize)) {
+				while (char.value !== terminator && this.#offset < this.#byteLength) {
 					result.value += char.value;
 					result.byteLength += char.byteLength;
 					// eslint-disable-next-line no-await-in-loop

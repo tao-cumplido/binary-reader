@@ -1,4 +1,4 @@
-import type { FileHandle } from 'fs/promises';
+import fs from 'fs/promises';
 
 import test from 'ava';
 
@@ -6,19 +6,13 @@ import { ByteOrder, DataType, Encoding } from '@nishin/reader';
 
 import { AsyncReader } from './async-reader.js';
 
-function mockFileHandle(source: Uint8Array) {
-	return {
-		stat: async () => Promise.resolve({ size: source.length }),
-		read: async ({ buffer = Buffer.alloc(0), length = 0, position = 0 }) => {
-			const result = source.slice(position, position + length);
-			buffer.fill(result);
-			return Promise.resolve({ bytesRead: result.length });
-		},
-	} as unknown as FileHandle;
-}
-
 test('seek', async ({ deepEqual, throwsAsync }) => {
-	const reader = new AsyncReader(mockFileHandle(new Uint8Array([0, 1, 2, 3, 4])), { bufferSize: 2 });
+	const path = 'dist/seek';
+	const handle = await fs.open(path, 'w+');
+
+	await handle.writeFile(new Uint8Array([0, 1, 2, 3, 4]));
+
+	const reader = new AsyncReader(handle, { bufferSize: 2 });
 
 	await reader.seek(3);
 
@@ -41,16 +35,21 @@ test('seek', async ({ deepEqual, throwsAsync }) => {
 	deepEqual(reader.buffer, Buffer.from([0, 1]));
 
 	await throwsAsync(reader.seek(5));
+
+	await reader.close();
+
+	await fs.rm(path);
 });
 
 test('next', async ({ deepEqual, throwsAsync }) => {
-	const reader = new AsyncReader(
-		mockFileHandle(new Uint8Array([0x30, 0x31, 0x32, 0x33, 0x00, 0xe3])),
-		ByteOrder.BigEndian,
-		{
-			bufferSize: 2,
-		},
-	);
+	const path = 'dist/next';
+	const handle = await fs.open(path, 'w+');
+
+	await handle.writeFile(new Uint8Array([0x30, 0x31, 0x32, 0x33, 0x00, 0xe3]));
+
+	const reader = new AsyncReader(handle, ByteOrder.BigEndian, {
+		bufferSize: 2,
+	});
 
 	deepEqual(await reader.next(DataType.array(DataType.Uint8, 4)), {
 		value: [0x30, 0x31, 0x32, 0x33],
@@ -84,4 +83,8 @@ test('next', async ({ deepEqual, throwsAsync }) => {
 	await reader.skip(1);
 
 	await throwsAsync(reader.next(DataType.char(Encoding.UTF8)));
+
+	await reader.close();
+
+	await fs.rm(path);
 });
