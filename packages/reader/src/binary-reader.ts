@@ -10,6 +10,7 @@ import {
 	DataString,
 	DataType,
 } from './data/index.js';
+import { decoders } from './decoders/index.js';
 import { Encoding } from './encoding.js';
 import { ReadError } from './read-error.js';
 import { repeat } from './repeat.js';
@@ -46,6 +47,10 @@ export class BinaryReader {
 
 	get offset(): number {
 		return this.#offset;
+	}
+
+	get byteLength(): number {
+		return this.#buffer.length;
 	}
 
 	get buffer(): Uint8Array {
@@ -209,113 +214,13 @@ export class BinaryReader {
 			}
 
 			if (type instanceof DataChar) {
-				const { encoding, byteOrder = this.#byteOrder } = type;
+				const decode = decoders.get(type.encoding);
 
-				if (encoding === Encoding.ASCII) {
-					return {
-						value: String.fromCharCode(this.next(DataType.Uint8).value),
-						byteLength: 1,
-					} as DataValue<string> as Read<T>;
+				if (!decode) {
+					throw new TypeError(`unsuported encoding`);
 				}
 
-				if (encoding === Encoding.UTF8) {
-					const byte1 = this.next(DataType.Uint8).value;
-
-					if (byte1 < 0x80) {
-						return {
-							value: String.fromCharCode(byte1),
-							byteLength: 1,
-						} as DataValue<string> as Read<T>;
-					}
-
-					const message = 'invalid utf-8 bytes';
-
-					if (byte1 < 0xc2 || byte1 > 0xf4) {
-						throw new ReadError(message, type, new Uint8Array([byte1]));
-					}
-
-					const isInvalid = (...bytes: number[]) => bytes.some((byte) => byte < 0x80 || byte > 0xbf);
-
-					const byte2 = this.next(DataType.Uint8).value;
-
-					if (byte1 < 0xe0) {
-						if (isInvalid(byte2)) {
-							throw new ReadError(message, type, new Uint8Array([byte1, byte2]));
-						}
-
-						return {
-							value: String.fromCodePoint(((byte1 & 0x1f) << 6) + (byte2 & 0x3f)),
-							byteLength: 2,
-						} as DataValue<string> as Read<T>;
-					}
-
-					const byte3 = this.next(DataType.Uint8).value;
-
-					if (byte1 < 0xf0) {
-						if ((byte1 === 0xe0 && byte2 < 0xa0) || (byte1 === 0xed && byte2 > 0x9f) || isInvalid(byte2, byte3)) {
-							throw new ReadError(message, type, new Uint8Array([byte1, byte2, byte3]));
-						}
-
-						return {
-							value: String.fromCodePoint(((byte1 & 0x0f) << 12) + ((byte2 & 0x3f) << 6) + (byte3 & 0x3f)),
-							byteLength: 3,
-						} as DataValue<string> as Read<T>;
-					}
-
-					const byte4 = this.next(DataType.Uint8).value;
-
-					if ((byte1 === 0xf0 && byte2 < 0x90) || (byte1 === 0xf4 && byte2 > 0x8f) || isInvalid(byte2, byte3, byte4)) {
-						throw new ReadError(message, type, new Uint8Array([byte1, byte2, byte3, byte4]));
-					}
-
-					return {
-						value: String.fromCodePoint(
-							((byte1 & 0x07) << 18) + ((byte2 & 0x3f) << 12) + ((byte3 & 0x3f) << 6) + (byte4 & 0x3f),
-						),
-						byteLength: 4,
-					} as DataValue<string> as Read<T>;
-				}
-
-				if (encoding === Encoding.UTF16) {
-					const char: DataValue<string> = (() => {
-						const high = this.next(DataType.int({ signed: false, byteLength: 2 }, byteOrder)).value;
-
-						if (high < 0xd800 || high >= 0xe000) {
-							return {
-								value: String.fromCharCode(high),
-								byteLength: 2,
-							};
-						}
-
-						const low = this.next(DataType.int({ signed: false, byteLength: 2 }, byteOrder)).value;
-
-						if (high >= 0xdc00 || low < 0xdc00 || low >= 0xe000) {
-							throw new ReadError(`invalid utf-16 bytes`, type, this.#buffer.slice(this.#offset - 4, this.#offset));
-						}
-
-						return {
-							value: String.fromCodePoint((high - 0xd800) * 0x400 + (low - 0xdc00) + 0x10000),
-							byteLength: 4,
-						};
-					})();
-
-					return char as Read<T>;
-				}
-
-				if (encoding === Encoding.UTF32) {
-					const codePoint = this.next(DataType.int({ signed: false, byteLength: 4 }, byteOrder)).value;
-
-					if (codePoint >= 0xd800 && codePoint < 0xe000) {
-						throw new ReadError(`invalid utf-32 code point`, type, this.#buffer.slice(this.#offset - 4, this.#offset));
-					}
-
-					return {
-						value: String.fromCodePoint(codePoint),
-						byteLength: 4,
-					} as DataValue<string> as Read<T>;
-				}
-
-				throw new TypeError(`unsuported encoding`);
+				return decode(type, this) as Read<T>;
 			}
 
 			if (type instanceof DataString) {

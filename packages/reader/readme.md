@@ -19,13 +19,14 @@ These data types are currently supported:
 The following encodings are currently supported for text characters and strings:
 
 - ASCII
+- ISO 8859-1
 - UTF-8
 - UTF-16
 - UTF-32
 
 Note that for UTF-16 and UTF-32 the byte order is relevant.
 
-In most cases reading more than one byte requires a byte order to be set. The byte order can be set on the reader instance or on the data type provided to the `next()` method, the order on the data type takes precedence over the instance one. For consistency, the `next()` method always returns an object of the form `{ value: T, byteLength: number }`. While in many cases the number of bytes to read is known beforehand, this is not always the case. For example one character of text in UTF-8 encoding can be between 1 and 4 bytes.
+In most cases reading more than one byte requires a byte order to be set. The byte order can be set on the reader instance or on the data type provided to the `next()` method, the order on the data type takes precedence over the instance one. For consistency, the `next()` method always returns an object of the form `{ value: T, byteLength: number }`. While in many cases the number of bytes to read is known beforehand, this is not always the case. For example one character of text in UTF-8 encoding can be between 1 and 4 bytes long.
 
 ## Installation
 
@@ -79,7 +80,6 @@ assert.deepEqual(
 	reader.next({ a: DataType.Uint8, b: DataType.char(Encoding.ASCII) }),
 	{ a: { value: 0, byteLength: 1 }, b: { value: 'B', byteLength: 1 } },
 );
-
 ```
 
 ## API
