@@ -130,6 +130,8 @@ interface DataValue<T> {
 class BinaryReader {
 	readonly offset: number;
 	readonly buffer: Uint8Array;
+	readonly byteLength: number;
+	readonly hasNext: boolean;
 	readonly byteOrder?: ByteOrder;
 
 	constructor(source: Uint8Array, byteOrder?: ByteOrder);

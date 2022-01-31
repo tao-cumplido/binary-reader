@@ -61,6 +61,10 @@ export class BinaryReader {
 		return this.#byteOrder;
 	}
 
+	get hasNext(): boolean {
+		return this.#offset < this.#buffer.length;
+	}
+
 	constructor(source: Uint8Array, byteOrder?: ByteOrder) {
 		this.#buffer = source;
 		this.#view = new DataView(source.buffer, source.byteOffset, source.byteLength);
@@ -130,7 +134,7 @@ export class BinaryReader {
 	 * Set the read offset.
 	 */
 	seek(offset: number): void {
-		assertInt(offset, { min: 0, max: this.#buffer.length - 1 });
+		assertInt(offset, { min: 0, max: this.#buffer.length });
 		this.#offset = offset;
 	}
 
