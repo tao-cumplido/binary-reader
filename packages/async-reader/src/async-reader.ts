@@ -41,6 +41,10 @@ export class AsyncReader {
 		return this.#reader.buffer;
 	}
 
+	get hasNext(): boolean {
+		return this.#offset < this.#byteLength;
+	}
+
 	constructor(fileHandle: FileHandle, byteOrder?: ByteOrder, { bufferSize }?: Config);
 	constructor(fileHandle: FileHandle, { bufferSize }: Config);
 	constructor(fileHandle: FileHandle, byteOrderOrConfig?: ByteOrder | Config, { bufferSize = 2 ** 20 * 10 } = {}) {
@@ -85,7 +89,7 @@ export class AsyncReader {
 	}
 
 	async seek(offset: number): Promise<void> {
-		assertInt(offset, { min: 0, max: this.#byteLength - 1 });
+		assertInt(offset, { min: 0, max: this.#byteLength });
 		await this.#prepareOffset(offset - this.#offset);
 		this.#offset = offset;
 	}

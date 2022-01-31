@@ -45,6 +45,8 @@ interface Config {
 class AsyncReader {
 	readonly offset: number;
 	readonly buffer: Uint8Array;
+	readonly byteLength: number;
+	readonly hasNext: boolean;
 	readonly byteOrder?: ByteOrder;
 
 	constructor(fileHandle: FileHandle, byteOrder?: ByteOrder, { bufferSize }?: Config);

@@ -34,7 +34,11 @@ test('seek', async ({ deepEqual, throwsAsync }) => {
 
 	deepEqual(reader.buffer, Buffer.from([0, 1]));
 
-	await throwsAsync(reader.seek(5));
+	await reader.seek(5);
+
+	deepEqual(reader.buffer, Buffer.from([]));
+
+	await throwsAsync(reader.seek(6));
 
 	await reader.close();
 
@@ -83,6 +87,12 @@ test('next', async ({ deepEqual, throwsAsync }) => {
 	await reader.skip(1);
 
 	await throwsAsync(reader.next(DataType.char(Encoding.UTF8)));
+
+	deepEqual(reader.offset, 5);
+
+	deepEqual(await reader.next(DataType.Uint8), { value: 0xe3, byteLength: 1 });
+
+	deepEqual(reader.offset, 6);
 
 	await reader.close();
 
