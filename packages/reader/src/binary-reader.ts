@@ -177,10 +177,17 @@ export class BinaryReader {
 					throw new ReadError(`no byte order specified for reading multibyte integer`, type);
 				}
 
-				const byteList = this.#buffer.slice(this.#offset, this.#offset + byteLength);
+				// make sure slice operation produces a copy
+				// otherwise big endian reverse below will also reverse the referenced bytes in the source buffer
+				// see https://nodejs.org/api/buffer.html#bufslicestart-end
+				const byteList = [...this.#buffer.slice(this.#offset, this.#offset + byteLength)];
 
 				if (byteList.length !== byteLength) {
-					throw new ReadError(`couldn't read ${byteLength} bytes from offset ${this.#offset}`, type, byteList);
+					throw new ReadError(
+						`couldn't read ${byteLength} bytes from offset ${this.#offset}`,
+						type,
+						new Uint8Array(byteList),
+					);
 				}
 
 				if (byteOrder === ByteOrder.BigEndian) {

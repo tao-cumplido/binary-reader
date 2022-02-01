@@ -87,6 +87,12 @@ test('uint big endian', ({ deepEqual }) => {
 	});
 });
 
+test('node buffer big endian', ({ deepEqual }) => {
+	const reader = new BinaryReader(Buffer.from([0, 1]), ByteOrder.BigEndian);
+	reader.next(DataType.Uint16);
+	deepEqual(reader.buffer, Buffer.from([0, 1]));
+});
+
 test('int little endian', ({ deepEqual }) => {
 	const reader = new BinaryReader(
 		new Uint8Array([
