@@ -1,6 +1,6 @@
 {
 	"name": "@nishin/reader",
-	"version": "0.1.4",
+	"version": "0.1.5",
 	"description": "Read various data types from a byte array in a streamlined way",
 	"keywords": [
 		"binary",

@@ -96,6 +96,9 @@ class Encoding extends Enum {
 	static readonly UTF8: Encoding;
 	static readonly UTF16: Encoding;
 	static readonly UTF32: Encoding;
+
+	readonly minBytes: number;
+	readonly maxBytes: number;
 }
 
 class DataType {
