@@ -25,6 +25,10 @@ export class AsyncReader {
 	#dataRead = false;
 	#offset = 0;
 
+	get fileHandle(): FileHandle {
+		return this.#fileHandle;
+	}
+
 	get offset(): number {
 		return this.#offset;
 	}

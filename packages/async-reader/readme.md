@@ -43,6 +43,7 @@ interface Config {
 }
 
 class AsyncReader {
+	readonly fileHandle: FileHandle;
 	readonly offset: number;
 	readonly buffer: Uint8Array;
 	readonly byteLength: number;
