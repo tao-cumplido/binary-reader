@@ -47,12 +47,12 @@ class AsyncReader {
 	readonly offset: number;
 	readonly buffer: Uint8Array;
 	readonly byteLength: number;
-	readonly hasNext: boolean;
 	readonly byteOrder?: ByteOrder;
 
 	constructor(fileHandle: FileHandle, byteOrder?: ByteOrder, { bufferSize }?: Config);
 	constructor(fileHandle: FileHandle, { bufferSize }: Config);
 
+	hasNext(byteLength = 1): boolean;
 	setByteOrder(byteOrder: ByteOrder): void;
 
 	async slice(size: number): Promise<BinaryReader>;

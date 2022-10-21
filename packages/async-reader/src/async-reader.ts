@@ -45,10 +45,6 @@ export class AsyncReader {
 		return this.#reader.buffer;
 	}
 
-	get hasNext(): boolean {
-		return this.#offset < this.#byteLength;
-	}
-
 	constructor(fileHandle: FileHandle, byteOrder?: ByteOrder, { bufferSize }?: Config);
 	constructor(fileHandle: FileHandle, { bufferSize }: Config);
 	constructor(fileHandle: FileHandle, byteOrderOrConfig?: ByteOrder | Config, { bufferSize = 2 ** 20 * 10 } = {}) {
@@ -73,6 +69,11 @@ export class AsyncReader {
 
 			this.#dataRead = true;
 		}
+	}
+
+	hasNext(byteLength = 1): boolean {
+		assertInt(byteLength, { min: 1 });
+		return this.#offset + byteLength <= this.#byteLength;
 	}
 
 	setByteOrder(byteOrder: ByteOrder): void {
