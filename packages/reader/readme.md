@@ -134,11 +134,18 @@ class BinaryReader {
 	readonly offset: number;
 	readonly buffer: Uint8Array;
 	readonly byteLength: number;
-	readonly hasNext: boolean;
 	readonly byteOrder?: ByteOrder;
 
 	constructor(source: Uint8Array, byteOrder?: ByteOrder);
 
+	/**
+	 * Query whether there are any bytes left to read. The number of bytes to query defaults to 1.
+	 */
+	hasNext(byteLength = 1): boolean;
+
+	/**
+	 * Sets the byte order on the reader instance manually.
+	 */
 	setByteOrder(byteOrder: ByteOrder): void;
 
 	/**

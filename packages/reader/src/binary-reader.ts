@@ -61,16 +61,23 @@ export class BinaryReader {
 		return this.#byteOrder;
 	}
 
-	get hasNext(): boolean {
-		return this.#offset < this.#buffer.length;
-	}
-
 	constructor(source: Uint8Array, byteOrder?: ByteOrder) {
 		this.#buffer = source;
 		this.#view = new DataView(source.buffer, source.byteOffset, source.byteLength);
 		this.#byteOrder = byteOrder;
 	}
 
+	/**
+	 * Query whether there are any bytes left to read. The number of bytes to query defaults to 1.
+	 */
+	hasNext(byteLength = 1): boolean {
+		assertInt(byteLength, { min: 1 });
+		return this.#offset + byteLength <= this.#buffer.length;
+	}
+
+	/**
+	 * Sets the byte order on the reader instance manually.
+	 */
 	setByteOrder(byteOrder: ByteOrder): void {
 		this.#byteOrder = byteOrder;
 	}
