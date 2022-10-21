@@ -13,10 +13,15 @@ export default (type: DataChar, reader: BinaryReader): DataValue<string> => {
 		};
 	}
 
-	const message = 'invalid UTF-8 bytes';
+	const invalidMessage = 'invalid UTF-8 bytes';
+	const incompleteMessage = 'incomplete UTF-8 bytes';
 
 	if (byte1 < 0xc2 || byte1 > 0xf4) {
-		throw new ReadError(message, type, new Uint8Array([byte1]));
+		throw new ReadError(invalidMessage, type, new Uint8Array([byte1]));
+	}
+
+	if (!reader.hasNext()) {
+		throw new ReadError(incompleteMessage, type, new Uint8Array([byte1]));
 	}
 
 	const isInvalid = (...bytes: number[]) => bytes.some((byte) => byte < 0x80 || byte > 0xbf);
@@ -25,7 +30,7 @@ export default (type: DataChar, reader: BinaryReader): DataValue<string> => {
 
 	if (byte1 < 0xe0) {
 		if (isInvalid(byte2)) {
-			throw new ReadError(message, type, new Uint8Array([byte1, byte2]));
+			throw new ReadError(invalidMessage, type, new Uint8Array([byte1, byte2]));
 		}
 
 		return {
@@ -34,11 +39,15 @@ export default (type: DataChar, reader: BinaryReader): DataValue<string> => {
 		};
 	}
 
+	if (!reader.hasNext()) {
+		throw new ReadError(incompleteMessage, type, new Uint8Array([byte1, byte2]));
+	}
+
 	const byte3 = reader.next(DataType.Uint8).value;
 
 	if (byte1 < 0xf0) {
 		if ((byte1 === 0xe0 && byte2 < 0xa0) || (byte1 === 0xed && byte2 > 0x9f) || isInvalid(byte2, byte3)) {
-			throw new ReadError(message, type, new Uint8Array([byte1, byte2, byte3]));
+			throw new ReadError(invalidMessage, type, new Uint8Array([byte1, byte2, byte3]));
 		}
 
 		return {
@@ -47,10 +56,14 @@ export default (type: DataChar, reader: BinaryReader): DataValue<string> => {
 		};
 	}
 
+	if (!reader.hasNext()) {
+		throw new ReadError(incompleteMessage, type, new Uint8Array([byte1, byte2, byte3]));
+	}
+
 	const byte4 = reader.next(DataType.Uint8).value;
 
 	if ((byte1 === 0xf0 && byte2 < 0x90) || (byte1 === 0xf4 && byte2 > 0x8f) || isInvalid(byte2, byte3, byte4)) {
-		throw new ReadError(message, type, new Uint8Array([byte1, byte2, byte3, byte4]));
+		throw new ReadError(invalidMessage, type, new Uint8Array([byte1, byte2, byte3, byte4]));
 	}
 
 	return {

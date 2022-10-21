@@ -33,6 +33,23 @@ test('valid', ({ deepEqual }) => {
 	deepEqual(valid.next(type), { value: String.fromCodePoint(0x10ffff), byteLength: 4 });
 });
 
+test('incomplete', ({ deepEqual, throws }) => {
+	deepEqual(
+		throws(() => new BinaryReader(new Uint8Array([0xc2])).next(type)),
+		new ReadError('incomplete UTF-8 bytes', type, new Uint8Array([0xc2])),
+	);
+
+	deepEqual(
+		throws(() => new BinaryReader(new Uint8Array([0xe0, 0xa0])).next(type)),
+		new ReadError('incomplete UTF-8 bytes', type, new Uint8Array([0xe0, 0xa0])),
+	);
+
+	deepEqual(
+		throws(() => new BinaryReader(new Uint8Array([0xf0, 0x90, 0x80])).next(type)),
+		new ReadError('incomplete UTF-8 bytes', type, new Uint8Array([0xf0, 0x90, 0x80])),
+	);
+});
+
 test('invalid', ({ deepEqual, is, throws }) => {
 	const reader = new BinaryReader(
 		new Uint8Array([
