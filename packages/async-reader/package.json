@@ -1,6 +1,6 @@
 {
 	"name": "@nishin/async-reader",
-	"version": "0.2.1",
+	"version": "0.2.2",
 	"description": "Read various data types from a Node.JS file handle in a streamlined way",
 	"keywords": [
 		"binary",
