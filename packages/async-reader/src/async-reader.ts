@@ -57,7 +57,7 @@ export class AsyncReader {
 		this.#reader = new BinaryReader(Buffer.alloc(this.#bufferSize), byteOrder);
 	}
 
-	async #prepareOffset(delta: number, position = this.#offset + delta) {
+	async #checkBufferBounds(delta: number, position = this.#offset + delta) {
 		if (!this.#dataRead || this.#reader.offset + delta < 0 || this.#reader.offset + delta >= this.#reader.buffer.length) {
 			this.#reader = new BinaryReader(Buffer.alloc(this.#bufferSize), this.byteOrder);
 
@@ -68,7 +68,11 @@ export class AsyncReader {
 			}
 
 			this.#dataRead = true;
+
+			return false;
 		}
+
+		return true;
 	}
 
 	hasNext(byteLength = 1): boolean {
@@ -95,7 +99,10 @@ export class AsyncReader {
 
 	async seek(offset: number): Promise<void> {
 		assertInt(offset, { min: 0, max: this.#byteLength });
-		await this.#prepareOffset(offset - this.#offset);
+		const delta = offset - this.#offset;
+		if (await this.#checkBufferBounds(delta)) {
+			this.#reader.seek(this.#reader.offset + delta);
+		}
 		this.#offset = offset;
 	}
 
@@ -154,21 +161,21 @@ export class AsyncReader {
 
 		try {
 			if (type instanceof DataBoolean) {
-				await this.#prepareOffset(1, this.#offset);
+				await this.#checkBufferBounds(1, this.#offset);
 				const result = this.#reader.next(type) as DataValue<unknown>;
 				this.#offset += result.byteLength;
 				return result as Read<T>;
 			}
 
 			if (type instanceof DataInt || type instanceof DataBigInt || type instanceof DataFloat) {
-				await this.#prepareOffset(type.byteLength, this.#offset);
+				await this.#checkBufferBounds(type.byteLength, this.#offset);
 				const result = this.#reader.next(type) as DataValue<unknown>;
 				this.#offset += result.byteLength;
 				return result as Read<T>;
 			}
 
 			if (type instanceof DataChar) {
-				await this.#prepareOffset(type.encoding.maxBytes, this.#offset);
+				await this.#checkBufferBounds(type.encoding.maxBytes, this.#offset);
 				const result = this.#reader.next(type) as DataValue<unknown>;
 				this.#offset += result.byteLength;
 				return result as Read<T>;

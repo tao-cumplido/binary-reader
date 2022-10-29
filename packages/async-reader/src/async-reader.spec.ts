@@ -22,6 +22,9 @@ test('seek', async ({ deepEqual, throwsAsync }) => {
 
 	deepEqual(reader.buffer, Buffer.from([3, 4]));
 
+	// assert buffered readers offset
+	deepEqual(await reader.next(DataType.Uint8), { value: 4, byteLength: 1 });
+
 	await reader.seek(2);
 
 	deepEqual(reader.buffer, Buffer.from([2, 3]));
