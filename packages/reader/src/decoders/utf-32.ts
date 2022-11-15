@@ -1,9 +1,8 @@
-import type { BinaryReader, DataValue } from '../binary-reader';
-import type { DataChar } from '../data';
+import type { Decoder } from './decoder';
 import { DataType } from '../data/data-type.js';
 import { ReadError } from '../read-error.js';
 
-export default (type: DataChar, reader: BinaryReader): DataValue<string> => {
+export const utf32: Decoder = (type, reader) => {
 	const codePoint = reader.next(DataType.int({ signed: false, byteLength: 4 }, type.byteOrder)).value;
 
 	if ((codePoint >= 0xd800 && codePoint < 0xe000) || codePoint > 0x10ffff) {

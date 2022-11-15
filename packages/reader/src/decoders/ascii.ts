@@ -1,9 +1,8 @@
-import type { BinaryReader, DataValue } from '../binary-reader';
-import type { DataChar } from '../data';
+import type { Decoder } from './decoder';
 import { DataType } from '../data/data-type.js';
 import { ReadError } from '../read-error.js';
 
-export default (type: DataChar, reader: BinaryReader): DataValue<string> => {
+export const ascii: Decoder = (type, reader) => {
 	const { value } = reader.next(DataType.Uint8);
 
 	if (value >= 0x80) {
