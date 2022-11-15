@@ -1,3 +1,6 @@
+export type { FloatBytes } from './float';
+export type { SafeIntBytes } from './int';
+
 export { DataArray } from './array.js';
 export { DataBigInt } from './bigint.js';
 export { DataBoolean } from './boolean.js';
