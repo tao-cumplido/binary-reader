@@ -15,7 +15,7 @@ import { Encoding } from './encoding.js';
 import { ReadError } from './read-error.js';
 import { repeat } from './repeat.js';
 
-type ReadWrite<T> = {
+type Mutable<T> = {
 	-readonly [P in keyof T]: T[P];
 };
 
@@ -38,10 +38,10 @@ export type Read<T extends DataType | Struct> = T extends Struct
 	? DataValue<string>
 	: DataValue<boolean>;
 
-export class BinaryReader {
+export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 	#offset = 0;
 
-	#buffer: Uint8Array;
+	#buffer: Buffer;
 	#view: DataView;
 	#byteOrder?: ByteOrder;
 
@@ -53,7 +53,7 @@ export class BinaryReader {
 		return this.#buffer.length;
 	}
 
-	get buffer(): Uint8Array {
+	get buffer(): Buffer {
 		return this.#buffer;
 	}
 
@@ -61,7 +61,7 @@ export class BinaryReader {
 		return this.#byteOrder;
 	}
 
-	constructor(source: Uint8Array, byteOrder?: ByteOrder) {
+	constructor(source: Buffer, byteOrder?: ByteOrder) {
 		this.#buffer = source;
 		this.#view = new DataView(source.buffer, source.byteOffset, source.byteLength);
 		this.#byteOrder = byteOrder;
@@ -131,9 +131,9 @@ export class BinaryReader {
 	/**
 	 * Creates copy of the reader from the current read offset with the given size.
 	 */
-	slice(size: number): BinaryReader {
+	slice(size: number): BinaryReader<Buffer> {
 		this.skip(size);
-		const reader = new BinaryReader(this.#buffer.slice(this.#offset - size, this.#offset), this.#byteOrder);
+		const reader = new BinaryReader(this.#buffer.slice(this.#offset - size, this.#offset) as Buffer, this.#byteOrder);
 		return reader;
 	}
 
@@ -254,7 +254,7 @@ export class BinaryReader {
 					} as Read<T>;
 				}
 
-				const result: ReadWrite<DataValue<string>> = {
+				const result: Mutable<DataValue<string>> = {
 					value: '',
 					byteLength: 0,
 				};
@@ -277,7 +277,7 @@ export class BinaryReader {
 			}
 
 			if (type instanceof DataArray) {
-				return repeat(type.count, () => this.next(type.type) as DataValue<unknown>).reduce<ReadWrite<DataValue<unknown[]>>>(
+				return repeat(type.count, () => this.next(type.type) as DataValue<unknown>).reduce<Mutable<DataValue<unknown[]>>>(
 					(result, item) => {
 						result.value.push(item.value);
 						result.byteLength += item.byteLength;

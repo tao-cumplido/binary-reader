@@ -19,7 +19,7 @@ interface Config {
 export class AsyncReader {
 	#fileHandle: FileHandle;
 	#bufferSize: number;
-	#reader: BinaryReader;
+	#reader: BinaryReader<Buffer>;
 	#byteLength: number;
 
 	#dataRead = false;
@@ -84,7 +84,7 @@ export class AsyncReader {
 		this.#reader.setByteOrder(byteOrder);
 	}
 
-	async slice(size: number): Promise<BinaryReader> {
+	async slice(size: number): Promise<BinaryReader<Buffer>> {
 		await this.skip(size);
 		const buffer = Buffer.alloc(size);
 
