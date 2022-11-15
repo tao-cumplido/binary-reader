@@ -1,4 +1,6 @@
 export type { DataValue, Read, Struct } from './binary-reader';
+export type { FloatBytes, SafeIntBytes } from './data';
+
 export { BinaryReader } from './binary-reader.js';
 export { ByteOrder } from './byte-order.js';
 export { DataType } from './data/data-type.js';
