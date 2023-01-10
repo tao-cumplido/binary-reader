@@ -1,32 +1,61 @@
-/* eslint-disable @typescript-eslint/no-invalid-void-type */
+/* eslint-disable @typescript-eslint/no-invalid-void-type, @typescript-eslint/consistent-type-definitions */
 
 import { Private } from './private.js';
 
-export interface EnumIdentifier {
+export type EnumFields = {
 	readonly index?: number;
 	readonly name?: string;
+};
+
+export type ValueEnumFields<Value> = EnumFields & { readonly value: Value };
+
+declare class EnumInstance<Brand extends string> {
+	readonly index: number;
+	readonly name?: string;
+	readonly #id: Brand;
 }
 
-export type EnumFields<T = void> = T extends void ? EnumIdentifier : EnumIdentifier & { readonly value?: T };
+declare class ValueEnumInstance<Brand extends string, Value> extends EnumInstance<Brand> {
+	readonly value: Value;
+}
 
-// eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/explicit-module-boundary-types
-export const Enum = <Brand extends string, Value = void>(id: symbol) => {
+/* prettier-ignore */
+export type EnumConstructor<Brand extends string, Value> =
+	unknown extends Value ? {
+		lookupIndex: <C extends { prototype: ValueEnumInstance<Brand, Value> }>(this: C, index: number) => C['prototype'] | undefined;
+		lookupValue: <C extends { prototype: ValueEnumInstance<Brand, Value> }>(this: C, value: Value) => C['prototype'] | undefined;
+		new (check: symbol, fields?: Partial<ValueEnumFields<Value>>): ValueEnumInstance<Brand, Value>;
+	} :
+	void extends Value ? {
+		lookupIndex: <C extends { prototype: EnumInstance<Brand> }>(this: C, index: number) => C['prototype'] | undefined;
+		new (check: symbol, fields?: EnumFields): EnumInstance<Brand>;
+	} :
+	undefined extends Value ? {
+		lookupIndex: <C extends { prototype: ValueEnumInstance<Brand, Value> }>(this: C, index: number) => C['prototype'] | undefined;
+		lookupValue: <C extends { prototype: ValueEnumInstance<Brand, Value> }>(this: C, value: Value) => C['prototype'] | undefined;
+		new (check: symbol, fields?: Partial<ValueEnumFields<Value>>): ValueEnumInstance<Brand, Value>;
+	} :
+	{
+		lookupIndex: <C extends { prototype: ValueEnumInstance<Brand, Value> }>(this: C, index: number) => C['prototype'] | undefined;
+		lookupValue: <C extends { prototype: ValueEnumInstance<Brand, Value> }>(this: C, value: Value) => C['prototype'] | undefined;
+		new (check: symbol, fields: ValueEnumFields<Value>): ValueEnumInstance<Brand, Value>;
+	};
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export const Enum = <Brand extends string, Value = unknown>(id: symbol): EnumConstructor<Brand, Value> => {
 	const indexMap = new Map();
 	const valueMap = new Map();
 
 	let currentIndex = 0;
 
-	// eslint-disable-next-line @typescript-eslint/no-shadow
+	// @ts-expect-error
 	return class Enum extends Private<Brand>(id) {
-		static lookupIndex<C extends { prototype: Enum }>(this: C, index: number): C['prototype'] | undefined {
+		static lookupIndex(index: number) {
 			// eslint-disable-next-line @typescript-eslint/no-unsafe-return
 			return indexMap.get(index);
 		}
 
-		static lookupValue<C extends { prototype: Enum }>(
-			this: C,
-			value: Value,
-		): Value extends void ? never : C['prototype'] | undefined {
+		static lookupValue(value: Value) {
 			// eslint-disable-next-line @typescript-eslint/no-unsafe-return
 			return valueMap.get(value);
 		}
@@ -53,8 +82,11 @@ export const Enum = <Brand extends string, Value = void>(id: symbol) => {
 			return this.#name;
 		}
 
-		// @ts-expect-error
-		constructor(check: symbol, { index, name, value }: EnumFields<Value> = {}) {
+		constructor(
+			check: symbol,
+			// @ts-expect-error
+			{ index, name, value }: EnumFields<Value> = {},
+		) {
 			if (new.target === Enum) {
 				throw new Error(`Enum is an abstract class`);
 			}
@@ -78,6 +110,7 @@ export const Enum = <Brand extends string, Value = void>(id: symbol) => {
 			}
 
 			this.#index = currentIndex;
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 			this.#name = name;
 
 			indexMap.set(currentIndex++, this);

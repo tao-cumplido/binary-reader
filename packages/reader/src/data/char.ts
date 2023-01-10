@@ -1,5 +1,5 @@
-import type { ByteOrder } from '../byte-order';
-import type { Encoding } from '../encoding';
+import type { ByteOrder } from '../byte-order.js';
+import type { Encoding } from '../encoding.js';
 import { DataType } from './data-type.js';
 
 export class DataChar extends DataType {

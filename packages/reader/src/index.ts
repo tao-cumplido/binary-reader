@@ -1,5 +1,5 @@
-export type { DataValue, Read, Struct } from './binary-reader';
-export type { FloatBytes, SafeIntBytes } from './data';
+export type { DataValue, Read, Struct } from './binary-reader.js';
+export type { FloatBytes, SafeIntBytes } from './data/index.js';
 
 export { BinaryReader } from './binary-reader.js';
 export { ByteOrder } from './byte-order.js';

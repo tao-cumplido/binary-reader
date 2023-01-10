@@ -1,14 +1,14 @@
 import { Private } from '@nishin/enum';
 
-import type { ByteOrder } from '../byte-order';
-import type { Encoding } from '../encoding';
-import type { DataArray } from './array';
-import type { DataBigInt } from './bigint';
-import type { DataBoolean } from './boolean';
-import type { DataChar } from './char';
-import type { DataFloat } from './float';
-import type { DataInt } from './int';
-import type { DataString } from './string';
+import type { ByteOrder } from '../byte-order.js';
+import type { Encoding } from '../encoding.js';
+import type { DataArray } from './array.js';
+import type { DataBigInt } from './bigint.js';
+import type { DataBoolean } from './boolean.js';
+import type { DataChar } from './char.js';
+import type { DataFloat } from './float.js';
+import type { DataInt } from './int.js';
+import type { DataString } from './string.js';
 
 type Public<T> = {
 	readonly [P in keyof T]: T[P];

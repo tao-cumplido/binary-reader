@@ -1,5 +1,5 @@
-export type { FloatBytes } from './float';
-export type { SafeIntBytes } from './int';
+export type { FloatBytes } from './float.js';
+export type { SafeIntBytes } from './int.js';
 
 export { DataArray } from './array.js';
 export { DataBigInt } from './bigint.js';

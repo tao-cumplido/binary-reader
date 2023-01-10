@@ -152,7 +152,7 @@ module.exports = {
 				'@typescript-eslint/no-loop-func': 'error',
 				'@typescript-eslint/no-loss-of-precision': 'error',
 				'@typescript-eslint/no-redeclare': 'error',
-				'@typescript-eslint/no-shadow': 'error',
+				'@typescript-eslint/no-shadow': ['error', { allow: ['Enum', 'Private'] }],
 				'@typescript-eslint/no-unused-expressions': 'error',
 				'@typescript-eslint/no-unused-vars': ['error', { args: 'all', argsIgnorePattern: '^_', caughtErrors: 'all' }],
 				'@typescript-eslint/no-use-before-define': 'error',

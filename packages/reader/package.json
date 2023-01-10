@@ -18,31 +18,38 @@
 	"type": "module",
 	"exports": {
 		".": {
-			"import": "./dist/esm/index.js",
-			"require": "./dist/cjs/index.cjs"
+			"import": {
+				"types": "./dist/esm/index.d.ts",
+				"default": "./dist/esm/index.js"
+			},
+			"require": {
+				"types": "./dist/cjs/index.d.cts",
+				"default": "./dist/cjs/index.cjs"
+			}
 		},
 		"./data": {
-			"import": "./dist/esm/data/index.js",
-			"require": "./dist/cjs/data/index.cjs"
+			"import": {
+				"types": "./dist/esm/data/index.d.ts",
+				"default": "./dist/esm/data/index.js"
+			},
+			"require": {
+				"types": "./dist/esm/data/index.d.cts",
+				"default": "./dist/cjs/data/index.cjs"
+			}
 		},
 		"./assert": {
-			"import": "./dist/esm/assert.js",
-			"require": "./dist/cjs/assert.cjs"
+			"import": {
+				"types": "./dist/esm/assert/index.d.ts",
+				"default": "./dist/esm/assert.js"
+			},
+			"require": {
+				"types": "./dist/cjs/assert/index.d.cts",
+				"default": "./dist/cjs/assert.cjs"
+			}
 		}
 	},
-	"typesVersions": {
-		"*": {
-			"*": [
-				"src/index.ts"
-			],
-			"data": [
-				"src/data/index.ts"
-			],
-			"assert": [
-				"src/assert.ts"
-			]
-		}
-	},
+	"types": "./dist/cjs/index.d.cts",
+	"main": "./dist/cjs/index.cjs",
 	"scripts": {
 		"build": "tsc",
 		"test": "ava"

@@ -1,4 +1,4 @@
-import type { Decoder } from './decoder';
+import type { Decoder } from './decoder.js';
 import { DataType } from '../data/data-type.js';
 import { ReadError } from '../read-error.js';
 

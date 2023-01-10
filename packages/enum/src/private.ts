@@ -1,13 +1,18 @@
-// eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/explicit-module-boundary-types
-export const Private = <Brand extends string>(id: symbol) => {
+declare class PrivateInstance<Brand extends string> {
+	readonly #id: Brand;
+}
+
+export type PrivateConstructor<Brand extends string> = new (check: symbol) => PrivateInstance<Brand>;
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export const Private = <Brand extends string>(id: symbol): PrivateConstructor<Brand> => {
 	if (typeof id !== 'symbol') {
 		throw new Error(`Private id must be a symbol`);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-shadow
+	// @ts-expect-error
+	// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 	return class Private {
-		readonly #id: Brand;
-
 		constructor(check: symbol) {
 			if (new.target === Private) {
 				throw new Error(`Private is an abstract class`);
@@ -16,9 +21,6 @@ export const Private = <Brand extends string>(id: symbol) => {
 			if (check !== id) {
 				throw new Error(`Private id mismatch: expected '${id.toString()}', got '${check.toString()}'`);
 			}
-
-			// @ts-expect-error
-			this.#id = id;
 		}
 	};
 };

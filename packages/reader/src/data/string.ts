@@ -1,4 +1,4 @@
-import type { Encoding } from '../encoding';
+import type { Encoding } from '../encoding.js';
 import { ByteOrder } from '../byte-order.js';
 import { DataType } from './data-type.js';
 

@@ -1,4 +1,4 @@
-import type { Decoder } from './decoder';
+import type { Decoder } from './decoder.js';
 import { Encoding } from '../encoding.js';
 import { ascii } from './ascii.js';
 import { iso88591 } from './iso-8859-1.js';

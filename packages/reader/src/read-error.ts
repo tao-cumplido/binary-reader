@@ -1,4 +1,4 @@
-import type { DataType } from './data';
+import type { DataType } from './data/index.js';
 
 export class ReadError extends Error {
 	readonly dataType: DataType;

@@ -1,4 +1,4 @@
-import type { ByteOrder } from '../byte-order';
+import type { ByteOrder } from '../byte-order.js';
 import { assertInt } from '../assert.js';
 import { DataType } from './data-type.js';
 
