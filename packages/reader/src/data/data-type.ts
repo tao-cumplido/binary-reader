@@ -1,5 +1,3 @@
-import { Private } from '@nishin/enum';
-
 import type { ByteOrder } from '../byte-order.js';
 import type { Encoding } from '../encoding.js';
 import type { DataArray } from './array.js';
@@ -13,8 +11,6 @@ import type { DataString } from './string.js';
 type Public<T> = {
 	readonly [P in keyof T]: T[P];
 };
-
-const id = Symbol('DataType');
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export declare namespace DataType {
@@ -43,12 +39,11 @@ export declare namespace DataType {
 	export function array<T extends DataType>(type: T, count: number): DataArray<T>;
 }
 
-export abstract class DataType extends Private<'DataType'>(id) {
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
+export abstract class DataType {
 	constructor() {
 		if (new.target === DataType) {
 			throw new Error(`DataType is an abstract class`);
 		}
-
-		super(id);
 	}
 }

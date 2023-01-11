@@ -18,7 +18,7 @@ for (const entry of await glob('packages/**/dist/cjs/**/*.js.map')) {
 	await fs.writeFile(entry, contents.replaceAll(/\.js"/gu, `.cjs"`));
 }
 
-for (const entry of await glob('packages/enum/dist/**/(private|enum).d.ts')) {
+for (const entry of await glob('packages/enum/dist/**/enum.d.ts')) {
 	const contents = await fs.readFile(entry, 'utf-8');
 	await fs.writeFile(entry, contents.replace('#private;', '#brand: Brand;'));
 }

@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-invalid-void-type, @typescript-eslint/consistent-type-definitions */
 
-import { Private } from './private.js';
-
 export type EnumFields = {
 	readonly index?: number;
 	readonly name?: string;
@@ -49,7 +47,7 @@ export const Enum = <Brand extends string, Value = unknown>(id: symbol): EnumCon
 	let currentIndex = 0;
 
 	// @ts-expect-error
-	return class Enum extends Private<Brand>(id) {
+	return class Enum {
 		static lookupIndex(index: number) {
 			// eslint-disable-next-line @typescript-eslint/no-unsafe-return
 			return indexMap.get(index);
@@ -91,9 +89,11 @@ export const Enum = <Brand extends string, Value = unknown>(id: symbol): EnumCon
 				throw new Error(`Enum is an abstract class`);
 			}
 
-			super(check);
+			if (check !== id) {
+				throw new Error(`Enum symbol id mismatch: expected '${id.toString()}', got '${check.toString()}'`);
+			}
 
-			if (!['undefined', 'number'].includes(typeof index) || (index && index < 0)) {
+			if (!['undefined', 'number'].includes(typeof index) || index < 0) {
 				throw new Error(`invalid index`);
 			}
 
