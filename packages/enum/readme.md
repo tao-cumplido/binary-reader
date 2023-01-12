@@ -36,7 +36,7 @@ assert.equal(Color.Green.name, 'Green'); // probably fails with minified code
 assert.equal(Color.Blue.name, 'Blue'); // always passes, name was explicitly set
 ```
 
-Additionally, enum instances can be backed by a value which has no type restrictions. Currently, values must be unique as well.
+Additionally, enum instances can be backed by a primitive value. Like indexes, values must be unique.
 
 ```js
 import assert from 'node:assert';

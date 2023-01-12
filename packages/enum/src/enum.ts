@@ -1,16 +1,18 @@
 /* eslint-disable @typescript-eslint/no-invalid-void-type, @typescript-eslint/consistent-type-definitions */
 
+export type ValuePrimitive = boolean | number | string | bigint | undefined | void;
+
 export type EnumFields = {
 	readonly index?: number;
 	readonly name?: string;
 };
 
-export type ValueEnumFields<Value> = EnumFields & { readonly value: Value };
+export type ValueEnumFields<Value extends ValuePrimitive> = EnumFields & { readonly value: Value };
 
 declare class EnumInstance<Brand extends string> {
+	readonly #id: Brand;
 	readonly index: number;
 	readonly name?: string;
-	readonly #id: Brand;
 }
 
 declare class ValueEnumInstance<Brand extends string, Value> extends EnumInstance<Brand> {
@@ -18,12 +20,7 @@ declare class ValueEnumInstance<Brand extends string, Value> extends EnumInstanc
 }
 
 /* prettier-ignore */
-export type EnumConstructor<Brand extends string, Value> =
-	unknown extends Value ? {
-		lookupIndex: <C extends { prototype: ValueEnumInstance<Brand, Value> }>(this: C, index: number) => C['prototype'] | undefined;
-		lookupValue: <C extends { prototype: ValueEnumInstance<Brand, Value> }>(this: C, value: Value) => C['prototype'] | undefined;
-		new (check: symbol, fields?: Partial<ValueEnumFields<Value>>): ValueEnumInstance<Brand, Value>;
-	} :
+export type EnumConstructor<Brand extends string, Value extends ValuePrimitive> =
 	void extends Value ? {
 		lookupIndex: <C extends { prototype: EnumInstance<Brand> }>(this: C, index: number) => C['prototype'] | undefined;
 		new (check: symbol, fields?: EnumFields): EnumInstance<Brand>;
@@ -40,7 +37,9 @@ export type EnumConstructor<Brand extends string, Value> =
 	};
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-export const Enum = <Brand extends string, Value = unknown>(id: symbol): EnumConstructor<Brand, Value> => {
+export const Enum = <Brand extends string, Value extends ValuePrimitive = undefined>(
+	id: symbol,
+): EnumConstructor<Brand, Value> => {
 	const indexMap = new Map();
 	const valueMap = new Map();
 
