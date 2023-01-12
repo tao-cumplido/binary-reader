@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-invalid-void-type, @typescript-eslint/consistent-type-definitions */
+/* eslint-disable @typescript-eslint/consistent-type-definitions */
 
 export type ValuePrimitive = boolean | number | string | bigint | undefined | void;
 

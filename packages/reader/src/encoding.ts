@@ -4,7 +4,6 @@ import { assertInt } from './assert.js';
 
 const id = Symbol('Encoding');
 
-// eslint-disable-next-line @typescript-eslint/no-invalid-void-type
 export class Encoding extends Enum<'Encoding', void>(id) {
 	static readonly ASCII = new Encoding(id, 1, 1);
 	static readonly ISO88591 = new Encoding(id, 1, 1);

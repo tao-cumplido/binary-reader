@@ -257,7 +257,6 @@ module.exports = {
 				'@typescript-eslint/no-explicit-any': 'error',
 				'@typescript-eslint/no-extraneous-class': ['error', { allowWithDecorator: true }],
 				'@typescript-eslint/no-inferrable-types': 'error',
-				'@typescript-eslint/no-invalid-void-type': ['error', { allowAsThisParameter: true }],
 				'@typescript-eslint/no-misused-new': 'error',
 				'@typescript-eslint/no-namespace': 'error',
 				'@typescript-eslint/no-non-null-assertion': 'error',
