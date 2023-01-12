@@ -1,3 +1,4 @@
+import type { Mutable } from './types.js';
 import { assertInt } from './assert.js';
 import { ByteOrder } from './byte-order.js';
 import {
@@ -14,10 +15,6 @@ import { decoders } from './decoders/index.js';
 import { Encoding } from './encoding.js';
 import { ReadError } from './read-error.js';
 import { repeat } from './repeat.js';
-
-type Mutable<T> = {
-	-readonly [P in keyof T]: T[P];
-};
 
 export type Struct = DataType[] | Record<string, DataType>;
 

@@ -1,33 +1,35 @@
-import type { FileHandle } from 'fs/promises';
-import { fstatSync } from 'fs';
+import type { DataValue, Read, Struct } from './binary-reader.js';
+import type { Mutable } from './types.js';
+import { assertInt } from './assert.js';
+import { BinaryReader } from './binary-reader.js';
+import { ByteOrder } from './byte-order.js';
+import {
+	DataArray,
+	DataBigInt,
+	DataBoolean,
+	DataChar,
+	DataFloat,
+	DataInt,
+	DataString,
+	DataType,
+} from './data/index.js';
+import { Encoding } from './encoding.js';
+import { repeatAsync } from './repeat.js';
 
-import type { DataValue, Read, Struct } from '@nishin/reader';
-import { BinaryReader, ByteOrder, DataType, Encoding } from '@nishin/reader';
-import { assertInt } from '@nishin/reader/assert';
-import { DataArray, DataBigInt, DataBoolean, DataChar, DataFloat, DataInt, DataString } from '@nishin/reader/data';
-
-import { repeatAsync } from './repeat-async.js';
-
-type ReadWrite<T> = {
-	-readonly [P in keyof T]: T[P];
-};
-
-interface Config {
+export interface AsyncReaderConfig {
 	readonly bufferSize: number;
 }
 
-export class AsyncReader {
-	#fileHandle: FileHandle;
-	#bufferSize: number;
-	#reader: BinaryReader<Buffer>;
+export type UpdateBuffer<Buffer extends Uint8Array> = (state: { offset: number; size: number }) => Promise<Buffer>;
+
+export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 	#byteLength: number;
+	#updateBuffer: UpdateBuffer<Buffer>;
+	#bufferSize: number;
+	#byteOrder?: ByteOrder;
+	#reader?: BinaryReader<Buffer>;
 
-	#dataRead = false;
 	#offset = 0;
-
-	get fileHandle(): FileHandle {
-		return this.#fileHandle;
-	}
 
 	get offset(): number {
 		return this.#offset;
@@ -38,41 +40,53 @@ export class AsyncReader {
 	}
 
 	get byteOrder(): ByteOrder | undefined {
-		return this.#reader.byteOrder;
+		return this.#byteOrder;
 	}
 
-	get buffer(): Uint8Array {
-		return this.#reader.buffer;
-	}
-
-	constructor(fileHandle: FileHandle, byteOrder?: ByteOrder, { bufferSize }?: Config);
-	constructor(fileHandle: FileHandle, { bufferSize }: Config);
-	constructor(fileHandle: FileHandle, byteOrderOrConfig?: ByteOrder | Config, { bufferSize = 2 ** 20 * 10 } = {}) {
-		const byteOrder = byteOrderOrConfig instanceof ByteOrder ? byteOrderOrConfig : undefined;
-
+	constructor(
+		byteLength: number,
+		updateBuffer: UpdateBuffer<Buffer>,
+		byteOrder?: ByteOrder,
+		{ bufferSize }?: AsyncReaderConfig,
+	);
+	constructor(byteLength: number, updateBuffer: UpdateBuffer<Buffer>, { bufferSize }: AsyncReaderConfig);
+	constructor(
+		byteLength: number,
+		updateBuffer: UpdateBuffer<Buffer>,
+		byteOrderOrConfig?: ByteOrder | AsyncReaderConfig,
+		{ bufferSize = 2 ** 20 * 10 } = {},
+	) {
+		this.#byteLength = byteLength;
+		this.#updateBuffer = updateBuffer;
+		this.#byteOrder = byteOrderOrConfig instanceof ByteOrder ? byteOrderOrConfig : undefined;
 		this.#bufferSize = byteOrderOrConfig instanceof ByteOrder ? bufferSize : byteOrderOrConfig?.bufferSize ?? bufferSize;
-		this.#byteLength = fstatSync(fileHandle.fd).size;
+	}
 
-		this.#fileHandle = fileHandle;
-		this.#reader = new BinaryReader(Buffer.alloc(this.#bufferSize), byteOrder);
+	async #getReader() {
+		if (!this.#reader) {
+			this.#reader = new BinaryReader(await this.#updateBuffer({ offset: 0, size: this.#bufferSize }), this.#byteOrder);
+		}
+
+		return this.#reader;
 	}
 
 	async #checkBufferBounds(delta: number, position = this.#offset + delta) {
-		if (!this.#dataRead || this.#reader.offset + delta < 0 || this.#reader.offset + delta >= this.#reader.buffer.length) {
-			this.#reader = new BinaryReader(Buffer.alloc(this.#bufferSize), this.byteOrder);
+		const reader = await this.#getReader();
 
-			const { bytesRead } = await this.#fileHandle.read(this.#reader.buffer, 0, this.#bufferSize, position);
-
-			if (bytesRead < this.#bufferSize) {
-				this.#reader = this.#reader.slice(bytesRead);
-			}
-
-			this.#dataRead = true;
-
+		if (reader.offset + delta < 0 || reader.offset + delta >= reader.buffer.length) {
+			this.#reader = new BinaryReader(
+				await this.#updateBuffer({ offset: position, size: this.#bufferSize }),
+				this.#byteOrder,
+			);
 			return false;
 		}
 
 		return true;
+	}
+
+	async getBuffer(): Promise<Buffer> {
+		const reader = await this.#getReader();
+		return reader.buffer;
 	}
 
 	hasNext(byteLength = 1): boolean {
@@ -80,28 +94,28 @@ export class AsyncReader {
 		return this.#offset + byteLength <= this.#byteLength;
 	}
 
-	setByteOrder(byteOrder: ByteOrder): void {
-		this.#reader.setByteOrder(byteOrder);
+	async setByteOrder(byteOrder: ByteOrder): Promise<void> {
+		const reader = await this.#getReader();
+		reader.setByteOrder(byteOrder);
 	}
 
-	async slice(size: number): Promise<BinaryReader<Buffer>> {
+	async slice(size: number): Promise<AsyncReader<Buffer>> {
 		await this.skip(size);
-		const buffer = Buffer.alloc(size);
-
-		await this.#fileHandle.read({
-			buffer,
-			length: size,
-			position: this.#offset - size,
-		});
-
-		return new BinaryReader(buffer, this.byteOrder);
+		const currentOffset = this.#offset;
+		return new AsyncReader(
+			size,
+			async ({ offset }) => this.#updateBuffer({ offset: currentOffset - size + offset, size: this.#bufferSize }),
+			this.#byteOrder,
+			{ bufferSize: this.#bufferSize },
+		);
 	}
 
 	async seek(offset: number): Promise<void> {
 		assertInt(offset, { min: 0, max: this.#byteLength });
 		const delta = offset - this.#offset;
 		if (await this.#checkBufferBounds(delta)) {
-			this.#reader.seek(this.#reader.offset + delta);
+			const reader = await this.#getReader();
+			reader.seek(reader.offset + delta);
 		}
 		this.#offset = offset;
 	}
@@ -127,7 +141,7 @@ export class AsyncReader {
 			throw new TypeError(`invalid byte order mark`);
 		}
 
-		this.setByteOrder(byteOrder);
+		return this.setByteOrder(byteOrder);
 	}
 
 	async assertMagic(magic: string | Uint8Array, offset = this.#offset): Promise<void> {
@@ -162,21 +176,24 @@ export class AsyncReader {
 		try {
 			if (type instanceof DataBoolean) {
 				await this.#checkBufferBounds(1, this.#offset);
-				const result = this.#reader.next(type) as DataValue<unknown>;
+				const reader = await this.#getReader();
+				const result = reader.next(type) as DataValue<unknown>;
 				this.#offset += result.byteLength;
 				return result as Read<T>;
 			}
 
 			if (type instanceof DataInt || type instanceof DataBigInt || type instanceof DataFloat) {
 				await this.#checkBufferBounds(type.byteLength, this.#offset);
-				const result = this.#reader.next(type) as DataValue<unknown>;
+				const reader = await this.#getReader();
+				const result = reader.next(type) as DataValue<unknown>;
 				this.#offset += result.byteLength;
 				return result as Read<T>;
 			}
 
 			if (type instanceof DataChar) {
 				await this.#checkBufferBounds(type.encoding.maxBytes, this.#offset);
-				const result = this.#reader.next(type) as DataValue<unknown>;
+				const reader = await this.#getReader();
+				const result = reader.next(type) as DataValue<unknown>;
 				this.#offset += result.byteLength;
 				return result as Read<T>;
 			}
@@ -195,7 +212,7 @@ export class AsyncReader {
 				}
 
 				// eslint-disable-next-line @typescript-eslint/no-shadow
-				const result: ReadWrite<DataValue<string>> = {
+				const result: Mutable<DataValue<string>> = {
 					value: '',
 					byteLength: 0,
 				};
@@ -222,7 +239,7 @@ export class AsyncReader {
 			if (type instanceof DataArray) {
 				const items = await repeatAsync(type.count, async () => this.next(type.type) as Promise<DataValue<unknown>>);
 
-				return items.reduce<ReadWrite<DataValue<unknown[]>>>(
+				return items.reduce<Mutable<DataValue<unknown[]>>>(
 					(result, item) => {
 						result.value.push(item.value);
 						result.byteLength += item.byteLength;
@@ -272,9 +289,5 @@ export class AsyncReader {
 		}
 
 		/* eslint-enable @typescript-eslint/consistent-type-assertions */
-	}
-
-	async close(): Promise<void> {
-		await this.#fileHandle.close();
 	}
 }

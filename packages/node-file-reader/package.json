@@ -1,5 +1,5 @@
 {
-	"name": "@nishin/async-reader",
+	"name": "@nishin/node-file-reader",
 	"version": "0.3.1",
 	"description": "Read various data types from a Node.JS file handle in a streamlined way",
 	"keywords": [
@@ -15,7 +15,7 @@
 	],
 	"license": "ISC",
 	"author": "Tao Cumplido",
-	"repository": "https://github.com/tao-cumplido/binary-reader/tree/main/packages/async-reader",
+	"repository": "https://github.com/tao-cumplido/binary-reader/tree/main/packages/node-file-reader",
 	"bugs": "https://github.com/tao-cumplido/binary-reader/issues",
 	"type": "module",
 	"exports": {
@@ -33,8 +33,7 @@
 	"types": "./dist/cjs/index.d.cts",
 	"main": "./dist/cjs/index.cjs",
 	"scripts": {
-		"build": "tsc",
-		"test": "ava"
+		"build": "tsc"
 	},
 	"dependencies": {
 		"@nishin/reader": "~0.3.1"

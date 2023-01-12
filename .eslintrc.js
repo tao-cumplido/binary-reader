@@ -192,9 +192,11 @@ module.exports = {
 					'error',
 					{
 						default: [
+							'#private-static-field',
 							'private-static-field',
 							'protected-static-field',
 							'public-static-field',
+							'#private-static-method',
 							'private-static-method',
 							'protected-static-method',
 							'public-static-method',
@@ -203,6 +205,7 @@ module.exports = {
 							'protected-abstract-field',
 							'public-abstract-field',
 							'private-decorated-field',
+							'#private-instance-field',
 							'private-instance-field',
 							'protected-decorated-field',
 							'protected-instance-field',
@@ -216,6 +219,7 @@ module.exports = {
 							'protected-abstract-method',
 							'public-abstract-method',
 							'private-decorated-method',
+							'#private-instance-method',
 							'private-instance-method',
 							'protected-decorated-method',
 							'protected-instance-method',
