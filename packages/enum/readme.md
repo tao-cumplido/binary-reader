@@ -4,12 +4,6 @@
 
 [![NPM Version][npm-image]][npm-url]
 
-## Install
-
-```sh
-npm install @nishin/enum
-```
-
 ## Usage
 
 `Enum` is a class factory that takes a symbol and produces a class constructor that is bound to that symbol. The generated constructor expects the same symbol passed on instantiation. This makes it possible to prevent instantiation of the class outside of the module when the symbol is not exported. The examples below demonstrate this pattern.

@@ -1,6 +1,6 @@
 {
 	"name": "@nishin/enum",
-	"version": "0.1.2",
+	"version": "0.3.0",
 	"description": "Simple enum implementation for JavaScript",
 	"keywords": [
 		"enum",

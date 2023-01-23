@@ -1,5 +1,5 @@
+!dist/
 tsconfig*
-*.d.ts
 *.tsbuildinfo
 *.spec.ts
 *.spec.js*
