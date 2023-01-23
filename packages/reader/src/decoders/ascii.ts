@@ -1,16 +1,18 @@
-import type { Decoder } from './decoder.js';
-import { DataType } from '../data/data-type.js';
+import type { Decoder } from '../types.js';
+import { intReader } from '../primitives/int.js';
 import { ReadError } from '../read-error.js';
 
-export const ascii: Decoder = (type, reader) => {
-	const { value } = reader.next(DataType.Uint8);
+const uint8 = intReader({ signed: false, byteLength: 1 });
+
+export const ascii: Decoder = ({ buffer, offset }) => {
+	const { value, source } = uint8({ buffer, offset });
 
 	if (value >= 0x80) {
-		throw new ReadError('invalid ASCII bytes', type, new Uint8Array([value]));
+		throw new ReadError('invalid ASCII bytes', new Uint8Array([value]));
 	}
 
 	return {
 		value: String.fromCharCode(value),
-		byteLength: 1,
+		source,
 	};
 };

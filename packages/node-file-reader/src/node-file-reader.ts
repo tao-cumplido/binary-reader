@@ -22,12 +22,7 @@ export class NodeFileReader extends AsyncReader<Buffer> {
 			async ({ offset, size }) => {
 				const buffer = Buffer.alloc(size);
 				const { bytesRead } = await fileHandle.read(buffer, 0, size, offset);
-
-				if (bytesRead < size) {
-					return Buffer.from(Uint8Array.prototype.slice.call(buffer, 0, bytesRead));
-				}
-
-				return buffer;
+				return buffer.subarray(0, bytesRead);
 			},
 			byteOrder,
 			resolvedConfig,

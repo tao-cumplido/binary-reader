@@ -1,21 +1,18 @@
 import test from 'ava';
 
-import { BinaryReader } from '../binary-reader.js';
-import { DataType } from '../data/data-type.js';
-import { Encoding } from '../encoding.js';
-import { ReadError } from '../read-error.js';
-
-const type = DataType.char(Encoding.ASCII);
+import { ReadError } from '../index.js';
+import { ascii as decode } from './ascii.js';
 
 test('valid', ({ deepEqual }) => {
-	const reader = new BinaryReader(new Uint8Array([0x00, 0x7f]));
-	deepEqual(reader.next(type), { value: '\0', byteLength: 1 });
-	deepEqual(reader.next(type), { value: '\x7f', byteLength: 1 });
+	const buffer = new Uint8Array([0x00, 0x7f]);
+	deepEqual(decode({ buffer, offset: 0 }), { value: '\0', source: buffer.subarray(0, 1) });
+	deepEqual(decode({ buffer, offset: 1 }), { value: '\x7f', source: buffer.subarray(1, 2) });
 });
 
 test('invalid', ({ deepEqual, throws }) => {
+	const buffer = new Uint8Array([0x80]);
 	deepEqual(
-		throws(() => new BinaryReader(new Uint8Array([0x80])).next(type)),
-		new ReadError('invalid ASCII bytes', type, new Uint8Array([0x80])),
+		throws(() => decode({ buffer, offset: 0 })),
+		new ReadError('invalid ASCII bytes', buffer.subarray()),
 	);
 });

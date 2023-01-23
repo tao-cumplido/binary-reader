@@ -1,27 +1,32 @@
-import type { Decoder } from './decoder.js';
-import { DataType } from '../data/data-type.js';
+import type { Decoder } from '../types.js';
+import { intReader } from '../primitives/int.js';
 import { ReadError } from '../read-error.js';
 
-export const utf16: Decoder = (type, reader) => {
-	const intType = DataType.int({ signed: false, byteLength: 2 }, type.byteOrder);
+const uint16 = intReader({ signed: false, byteLength: 2 });
 
-	const high = reader.next(intType).value;
+export const utf16: Decoder = ({ buffer, offset, byteOrder }) => {
+	const high = uint16({ buffer, offset, byteOrder });
 
-	if (high < 0xd800 || high >= 0xe000) {
+	if (high.value < 0xd800 || high.value >= 0xe000) {
 		return {
-			value: String.fromCharCode(high),
-			byteLength: 2,
+			value: String.fromCharCode(high.value),
+			source: high.source,
 		};
 	}
 
-	const low = reader.next(intType).value;
+	const low = uint16({ buffer, offset: offset + 2, byteOrder });
 
-	if (high >= 0xdc00 || low < 0xdc00 || low >= 0xe000) {
-		throw new ReadError(`invalid UTF-16 bytes`, type, reader.buffer.slice(reader.offset - 4, reader.offset));
+	const source = new Uint8Array(high.source.byteLength + low.source.byteLength);
+
+	source.set(high.source, 0);
+	source.set(low.source, high.source.byteLength);
+
+	if (high.value >= 0xdc00 || low.value < 0xdc00 || low.value >= 0xe000) {
+		throw new ReadError(`invalid UTF-16 bytes`, source);
 	}
 
 	return {
-		value: String.fromCodePoint((high - 0xd800) * 0x400 + (low - 0xdc00) + 0x10000),
-		byteLength: 4,
+		value: String.fromCodePoint((high.value - 0xd800) * 0x400 + (low.value - 0xdc00) + 0x10000),
+		source,
 	};
 };

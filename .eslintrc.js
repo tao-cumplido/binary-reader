@@ -12,7 +12,6 @@ module.exports = {
 		'array-callback-return': 'error',
 		'for-direction': 'error',
 		'no-async-promise-executor': 'error',
-		'no-await-in-loop': 'error',
 		'no-compare-neg-zero': 'error',
 		'no-cond-assign': 'error',
 		'no-constant-condition': 'error',
@@ -86,7 +85,6 @@ module.exports = {
 		'operator-assignment': 'error',
 		'prefer-arrow-callback': 'error',
 		'prefer-const': 'error',
-		'prefer-destructuring': 'error',
 		'prefer-exponentiation-operator': 'error',
 		'prefer-named-capture-group': 'error',
 		'prefer-numeric-literals': 'error',
@@ -136,7 +134,6 @@ module.exports = {
 			rules: {
 				// https://github.com/typescript-eslint/typescript-eslint/tree/v4.33.0/packages/eslint-plugin#extension-rules
 				'@typescript-eslint/default-param-last': 'error',
-				'@typescript-eslint/init-declarations': 'error',
 				'@typescript-eslint/lines-between-class-members': [
 					'error',
 					'always',
@@ -254,7 +251,6 @@ module.exports = {
 					},
 				],
 				'@typescript-eslint/no-empty-interface': 'error',
-				'@typescript-eslint/no-explicit-any': 'error',
 				'@typescript-eslint/no-extraneous-class': ['error', { allowWithDecorator: true }],
 				'@typescript-eslint/no-inferrable-types': 'error',
 				'@typescript-eslint/no-misused-new': 'error',

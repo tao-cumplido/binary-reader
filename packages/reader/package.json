@@ -26,26 +26,6 @@
 				"types": "./dist/cjs/index.d.cts",
 				"default": "./dist/cjs/index.cjs"
 			}
-		},
-		"./data": {
-			"import": {
-				"types": "./dist/esm/data/index.d.ts",
-				"default": "./dist/esm/data/index.js"
-			},
-			"require": {
-				"types": "./dist/esm/data/index.d.cts",
-				"default": "./dist/cjs/data/index.cjs"
-			}
-		},
-		"./assert": {
-			"import": {
-				"types": "./dist/esm/assert/index.d.ts",
-				"default": "./dist/esm/assert.js"
-			},
-			"require": {
-				"types": "./dist/cjs/assert/index.d.cts",
-				"default": "./dist/cjs/assert.cjs"
-			}
 		}
 	},
 	"types": "./dist/cjs/index.d.cts",

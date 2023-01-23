@@ -1,20 +1,10 @@
-import type { DataValue, Read, Struct } from './binary-reader.js';
-import type { Mutable } from './types.js';
+import type { AsyncDataReaderLike, BytesValue } from './types.js';
 import { assertInt } from './assert.js';
-import { BinaryReader } from './binary-reader.js';
 import { ByteOrder } from './byte-order.js';
-import {
-	DataArray,
-	DataBigInt,
-	DataBoolean,
-	DataChar,
-	DataFloat,
-	DataInt,
-	DataString,
-	DataType,
-} from './data/index.js';
+import { DataType } from './data-type.js';
 import { Encoding } from './encoding.js';
-import { repeatAsync } from './repeat.js';
+import { ReadError } from './read-error.js';
+import { ReadMode } from './read-mode.js';
 
 export interface AsyncReaderConfig {
 	readonly bufferSize: number;
@@ -27,9 +17,14 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 	#updateBuffer: UpdateBuffer<Buffer>;
 	#bufferSize: number;
 	#byteOrder?: ByteOrder;
-	#reader?: BinaryReader<Buffer>;
+	#buffer?: Buffer;
 
+	#bufferStart = 0;
 	#offset = 0;
+
+	get bufferStart(): number {
+		return this.#bufferStart;
+	}
 
 	get offset(): number {
 		return this.#offset;
@@ -43,13 +38,8 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 		return this.#byteOrder;
 	}
 
-	constructor(
-		byteLength: number,
-		updateBuffer: UpdateBuffer<Buffer>,
-		byteOrder?: ByteOrder,
-		{ bufferSize }?: AsyncReaderConfig,
-	);
-	constructor(byteLength: number, updateBuffer: UpdateBuffer<Buffer>, { bufferSize }: AsyncReaderConfig);
+	constructor(byteLength: number, updateBuffer: UpdateBuffer<Buffer>, byteOrder?: ByteOrder, config?: AsyncReaderConfig);
+	constructor(byteLength: number, updateBuffer: UpdateBuffer<Buffer>, config: AsyncReaderConfig);
 	constructor(
 		byteLength: number,
 		updateBuffer: UpdateBuffer<Buffer>,
@@ -62,31 +52,25 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 		this.#bufferSize = byteOrderOrConfig instanceof ByteOrder ? bufferSize : byteOrderOrConfig?.bufferSize ?? bufferSize;
 	}
 
-	async #getReader() {
-		if (!this.#reader) {
-			this.#reader = new BinaryReader(await this.#updateBuffer({ offset: 0, size: this.#bufferSize }), this.#byteOrder);
-		}
-
-		return this.#reader;
-	}
-
 	async #checkBufferBounds(delta: number, position = this.#offset + delta) {
-		const reader = await this.#getReader();
+		const buffer = await this.getBuffer();
 
-		if (reader.offset + delta < 0 || reader.offset + delta >= reader.buffer.length) {
-			this.#reader = new BinaryReader(
-				await this.#updateBuffer({ offset: position, size: this.#bufferSize }),
-				this.#byteOrder,
-			);
-			return false;
+		const bufferOffset = this.#offset - this.#bufferStart;
+
+		if (bufferOffset + delta < 0 || bufferOffset + delta >= buffer.byteLength) {
+			this.#buffer = await this.#updateBuffer({ offset: position, size: this.#bufferSize });
+			this.#bufferStart = position;
 		}
 
-		return true;
+		this.#offset = position;
 	}
 
 	async getBuffer(): Promise<Buffer> {
-		const reader = await this.#getReader();
-		return reader.buffer;
+		if (!this.#buffer) {
+			this.#buffer = await this.#updateBuffer({ offset: 0, size: this.#bufferSize });
+		}
+
+		return this.#buffer;
 	}
 
 	hasNext(byteLength = 1): boolean {
@@ -94,9 +78,8 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 		return this.#offset + byteLength <= this.#byteLength;
 	}
 
-	async setByteOrder(byteOrder: ByteOrder): Promise<void> {
-		const reader = await this.#getReader();
-		reader.setByteOrder(byteOrder);
+	setByteOrder(byteOrder: ByteOrder): void {
+		this.#byteOrder = byteOrder;
 	}
 
 	async slice(size: number): Promise<AsyncReader<Buffer>> {
@@ -113,11 +96,7 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 	async seek(offset: number): Promise<void> {
 		assertInt(offset, { min: 0, max: this.#byteLength });
 		const delta = offset - this.#offset;
-		if (await this.#checkBufferBounds(delta)) {
-			const reader = await this.#getReader();
-			reader.seek(reader.offset + delta);
-		}
-		this.#offset = offset;
+		await this.#checkBufferBounds(delta);
 	}
 
 	async skip(bytes: number): Promise<void> {
@@ -133,7 +112,7 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 	async readByteOrderMark(offset = this.#offset): Promise<void> {
 		await this.seek(offset);
 
-		const { value } = await this.next(DataType.int({ signed: false, byteLength: 2 }, ByteOrder.BigEndian));
+		const value = await this.next(DataType.int({ signed: false, byteLength: 2 }, ByteOrder.BigEndian));
 
 		const byteOrder = ByteOrder.lookupValue(value);
 
@@ -141,19 +120,19 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 			throw new TypeError(`invalid byte order mark`);
 		}
 
-		return this.setByteOrder(byteOrder);
+		this.setByteOrder(byteOrder);
 	}
 
 	async assertMagic(magic: string | Uint8Array, offset = this.#offset): Promise<void> {
 		await this.seek(offset);
 
 		if (typeof magic === 'string') {
-			const { value } = await this.next(DataType.string(Encoding.ASCII, { count: magic.length }));
+			const value = await this.next(DataType.string(Encoding.ASCII, { count: magic.length }));
 			if (magic !== value) {
 				throw new TypeError(`invalid magic: expected '${magic}', got '${value}`);
 			}
 		} else {
-			const { value } = await this.next(DataType.array(DataType.Uint8, magic.length));
+			const value = await this.next(DataType.bytes(magic.length));
 
 			for (let i = 0; i < value.length; i++) {
 				if (value[i] !== magic[i]) {
@@ -168,126 +147,55 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 		}
 	}
 
-	async next<T extends DataType | Struct>(type: T): Promise<Read<T>> {
-		/* eslint-disable @typescript-eslint/consistent-type-assertions */
+	async next<Value>(type: AsyncDataReaderLike<Value>, mode: typeof ReadMode.Source): Promise<BytesValue<Value>>;
+	async next<Value>(type: AsyncDataReaderLike<Value>, mode?: typeof ReadMode.Value): Promise<Value>;
+	async next<Value>(
+		type: AsyncDataReaderLike<Value>,
+		mode: ReadMode = ReadMode.Value,
+	): Promise<BytesValue<Value> | Value> {
+		const read = typeof type === 'function' ? type : type.async ?? type.sync;
+
+		if (!read) {
+			throw new Error(`invalid state: missing reader function`);
+		}
+
+		if (type.maxRequiredBytes) {
+			await this.#checkBufferBounds(type.maxRequiredBytes, this.#offset);
+		}
 
 		const initialOffset = this.#offset;
 
 		try {
-			if (type instanceof DataBoolean) {
-				await this.#checkBufferBounds(1, this.#offset);
-				const reader = await this.#getReader();
-				const result = reader.next(type) as DataValue<unknown>;
-				this.#offset += result.byteLength;
-				return result as Read<T>;
-			}
+			const buffer = await this.getBuffer();
 
-			if (type instanceof DataInt || type instanceof DataBigInt || type instanceof DataFloat) {
-				await this.#checkBufferBounds(type.byteLength, this.#offset);
-				const reader = await this.#getReader();
-				const result = reader.next(type) as DataValue<unknown>;
-				this.#offset += result.byteLength;
-				return result as Read<T>;
-			}
-
-			if (type instanceof DataChar) {
-				await this.#checkBufferBounds(type.encoding.maxBytes, this.#offset);
-				const reader = await this.#getReader();
-				const result = reader.next(type) as DataValue<unknown>;
-				this.#offset += result.byteLength;
-				return result as Read<T>;
-			}
-
-			if (type instanceof DataString) {
-				const { encoding, byteOrder, terminator, count } = type;
-
-				const charType = DataType.char(encoding, byteOrder);
-
-				if (count > 0) {
-					const { value, byteLength } = await this.next(DataType.array(charType, count));
+			const result = await read(
+				{
+					buffer,
+					offset: this.#offset - this.#bufferStart,
+					byteOrder: this.#byteOrder,
+				},
+				async (value) => {
+					await this.#checkBufferBounds(value);
 					return {
-						value: value.join(''),
-						byteLength,
-					} as Read<T>;
-				}
+						buffer: await this.getBuffer(),
+						offset: this.#offset - this.#bufferStart,
+					};
+				},
+			);
 
-				// eslint-disable-next-line @typescript-eslint/no-shadow
-				const result: Mutable<DataValue<string>> = {
-					value: '',
-					byteLength: 0,
-				};
+			await this.seek(initialOffset + result.source.byteLength);
 
-				let char = await this.next(charType);
-
-				// eslint-disable-next-line no-await-in-loop
-				while (char.value !== terminator && this.#offset < this.#byteLength) {
-					result.value += char.value;
-					result.byteLength += char.byteLength;
-					// eslint-disable-next-line no-await-in-loop
-					char = await this.next(charType);
-				}
-
-				if (char.value !== terminator) {
-					result.value += char.value;
-				}
-
-				result.byteLength += char.byteLength;
-
-				return result as Read<T>;
+			switch (mode) {
+				case ReadMode.Source:
+					return result;
+				case ReadMode.Value:
+					return result.value;
 			}
 
-			if (type instanceof DataArray) {
-				const items = await repeatAsync(type.count, async () => this.next(type.type) as Promise<DataValue<unknown>>);
-
-				return items.reduce<Mutable<DataValue<unknown[]>>>(
-					(result, item) => {
-						result.value.push(item.value);
-						result.byteLength += item.byteLength;
-						return result;
-					},
-					{
-						value: [],
-						byteLength: 0,
-					},
-				) as Read<T>;
-			}
-
-			if (type instanceof DataType) {
-				throw new TypeError(`unsupported data type`);
-			}
-
-			if (Array.isArray(type)) {
-				const result = [];
-
-				for (const item of type) {
-					if (!(item instanceof DataType)) {
-						throw new TypeError(`struct array contains items which are not an instance of DataType`);
-					}
-
-					// eslint-disable-next-line no-await-in-loop
-					result.push(await this.next(item));
-				}
-
-				return result as Read<T>;
-			}
-
-			const entries = [];
-
-			for (const [key, item] of Object.entries(type)) {
-				if (!(item instanceof DataType)) {
-					throw new TypeError(`struct object contains items which are not an instance of DataType`);
-				}
-
-				// eslint-disable-next-line no-await-in-loop
-				entries.push([key, await this.next(item)] as const);
-			}
-
-			return Object.fromEntries(entries) as Read<T>;
+			throw new ReadError(`unknown read mode`, result.source);
 		} catch (error) {
-			this.#offset = initialOffset;
+			await this.seek(initialOffset);
 			throw error;
 		}
-
-		/* eslint-enable @typescript-eslint/consistent-type-assertions */
 	}
 }

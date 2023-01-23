@@ -1,14 +1,19 @@
 export function repeat<T>(times: number, callback: () => T): T[] {
-	return Array.from({ length: times }).map(() => callback());
+	const result = new Array<T>(times);
+
+	for (let i = 0; i < times; i++) {
+		result[i] = callback();
+	}
+
+	return result;
 }
 
 export async function repeatAsync<T>(times: number, callback: () => Promise<T>): Promise<T[]> {
-	const array = [];
+	const result = new Array<T>(times);
 
 	for (let i = 0; i < times; i++) {
-		// eslint-disable-next-line no-await-in-loop
-		array.push(await callback());
+		result[i] = await callback();
 	}
 
-	return array;
+	return result;
 }
