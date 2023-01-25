@@ -16,4 +16,5 @@ export { ByteOrder } from './byte-order.js';
 export { DataType } from './data-type.js';
 export { Encoding } from './encoding.js';
 export { ReadError } from './read-error.js';
+export { ReadMode } from './read-mode.js';
 export { repeat, repeatAsync } from './repeat.js';
