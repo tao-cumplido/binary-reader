@@ -1,6 +1,5 @@
 import { Enum } from '@nishin/enum';
 
-import type { Encoding } from './encoding.js';
 import type { BigIntReaderInit } from './primitives/bigint.js';
 import type { FloatReaderInit } from './primitives/float.js';
 import type { IntReaderInit } from './primitives/int.js';
@@ -9,6 +8,7 @@ import type {
 	AsyncDataReader,
 	AsyncDataReaderLike,
 	DataReader,
+	Decoder,
 	InternalDataReader,
 	UniformReadonlyTuple,
 } from './types.js';
@@ -54,8 +54,8 @@ export class DataType<Value> extends Enum<'DataType', void>(id) {
 		return floatReader({ byteLength }, byteOrder);
 	}
 
-	static char(encoding: Encoding, byteOrder?: ByteOrder): DataReader<string> {
-		return charReader(encoding, byteOrder);
+	static char(decoder: Decoder, byteOrder?: ByteOrder): DataReader<string> {
+		return charReader(decoder, byteOrder);
 	}
 
 	static bytes(count: number): InternalDataReader<Uint8Array> {
@@ -70,26 +70,26 @@ export class DataType<Value> extends Enum<'DataType', void>(id) {
 	}
 
 	static string(
-		encoding: Encoding,
+		decoder: Decoder,
 		{ terminator }: StringReaderTerminatorInit,
 		byteOrder?: ByteOrder,
 	): InternalDataReader<string>;
-	static string(encoding: Encoding, { count }: StringReaderCountInit, byteOrder?: ByteOrder): InternalDataReader<string>;
-	static string(encoding: Encoding, byteOrder?: ByteOrder): InternalDataReader<string>;
+	static string(decoder: Decoder, { count }: StringReaderCountInit, byteOrder?: ByteOrder): InternalDataReader<string>;
+	static string(decoder: Decoder, byteOrder?: ByteOrder): InternalDataReader<string>;
 	static string(
-		encoding: Encoding,
+		decoder: Decoder,
 		initOrByteOrder?: StringReaderTerminatorInit | StringReaderCountInit | ByteOrder,
 		byteOrder?: ByteOrder,
 	): InternalDataReader<string> {
 		if (initOrByteOrder instanceof ByteOrder) {
-			return stringReader(encoding, {}, initOrByteOrder);
+			return stringReader(decoder, {}, initOrByteOrder);
 		}
 
 		if (initOrByteOrder && 'count' in initOrByteOrder) {
 			assertInt(initOrByteOrder.count, { min: 0 });
 		}
 
-		return stringReader(encoding, initOrByteOrder, byteOrder);
+		return stringReader(decoder, initOrByteOrder, byteOrder);
 	}
 
 	readonly sync: DataReader<Value>;

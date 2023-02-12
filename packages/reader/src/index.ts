@@ -7,6 +7,7 @@ export type {
 	BytesValue,
 	DataReader,
 	DataReaderState,
+	Decoder,
 	SyncDataReaderLike,
 } from './types.js';
 

@@ -84,4 +84,7 @@ export type AsyncDataReaderLike<Value> =
 	| PartialPick<InternalDataReader<Value>, 'async'>
 	| PartialPick<InternalDataReader<Value>, 'sync'>;
 
-export type Decoder = DataReader<string>;
+export type Decoder = {
+	readonly decode: DataReader<string>;
+	readonly maxRequiredBytes: number;
+};

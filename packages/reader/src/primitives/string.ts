@@ -1,6 +1,5 @@
 import type { ByteOrder } from '../byte-order.js';
-import type { Encoding } from '../encoding.js';
-import type { InternalDataReader } from '../types.js';
+import type { Decoder, InternalDataReader } from '../types.js';
 import { arrayReader } from './array.js';
 import { charReader } from './char.js';
 
@@ -13,7 +12,7 @@ export interface StringReaderCountInit {
 }
 
 export type StringReaderFactory = (
-	encoding: Encoding,
+	decoder: Decoder,
 	init?: Partial<StringReaderTerminatorInit & StringReaderCountInit>,
 	byteOrder?: ByteOrder,
 ) => InternalDataReader<string>;
@@ -41,12 +40,12 @@ const combineParts = (result: PartialResult) => {
 };
 
 export const stringReader: StringReaderFactory = (
-	encoding,
+	decoder,
 	// eslint-disable-next-line @typescript-eslint/default-param-last
 	{ terminator = '\0', count = -1 } = {},
 	byteOrder,
 ) => {
-	const char = charReader(encoding, byteOrder);
+	const char = charReader(decoder, byteOrder);
 
 	return {
 		sync: (state) => {

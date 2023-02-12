@@ -33,7 +33,7 @@ In most cases reading more than one byte requires a byte order to be set. The by
 ```js
 import assert from 'node:assert';
 
-import { BinaryReader, DataType, ByteOrder, Encoding } from '@nishin/reader';
+import { BinaryReader, DataType, ByteOrder } from '@nishin/reader';
 
 const reader = new BinaryReader(new Uint8Array([0x00, 0x42]), ByteOrder.BigEndian);
 
@@ -69,8 +69,9 @@ See the source files for [`BinaryReader`](src/binary-reader.ts) and [`DataType`]
 
 The package provides an `AsyncReader` class that provides a similiar interface as the synchronous `BinaryReader` but allows to only hold parts of the source data in memory at a given time. The `@nishin/node-file-reader` package implements an access layer on top of `AsyncReader` to be able to read files of arbitrary size. `AsyncReader` itself is platform independent and could also receive updates from an API endpoint.
 
-## Custom data readers
-The built-in types accessed through `DataType` are just low-level primitives for reading data from a given buffer. These primitives are just function that are passed buffer, offset and byte order. In TypeScript the basic definition is as follows
+## Custom data types
+
+The built-in types accessed through `DataType` are just low-level primitives for reading data from a given buffer. These primitives are simple functions that are passed a buffer, an offset and a byte order. In TypeScript the basic definition is as follows
 
 ```ts
 interface BytesValue<T> {
@@ -87,7 +88,9 @@ interface DataReaderState {
 type DataReader<Value> = (state: DataReaderState) => BytesValue<Value>;
 ```
 
-Custom data readers can be passed to the `next()` method of a `BinaryReader` instance and can be used to read blocks of data like structs. The built-in types can give an idea of how to implement such a method. Note that some implementations are a bit more complex since they need to differentiate between synchronous and asynchronous access. Asynchronous access is more complex and is still lacking documentation.
+Custom data types can be passed to the `next()` method of a `BinaryReader` instance and can be used to read blocks of data like structs. The built-in types can give an idea of how to implement such a method. Note that some implementations are a bit more complex since they need to differentiate between synchronous and asynchronous access. Asynchronous access is more complex and is still lacking documentation.
+
+Custom encodings can be implemented in a similar fashion. See the sources for examples.
 
 [npm-image]: https://img.shields.io/npm/v/@nishin/reader.svg
 [npm-url]: https://npmjs.org/package/@nishin/reader
