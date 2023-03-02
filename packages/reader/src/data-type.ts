@@ -3,7 +3,11 @@ import { Enum } from '@nishin/enum';
 import type { BigIntReaderInit } from './primitives/bigint.js';
 import type { FloatReaderInit } from './primitives/float.js';
 import type { IntReaderInit } from './primitives/int.js';
-import type { StringReaderCountInit, StringReaderTerminatorInit } from './primitives/string.js';
+import type {
+	StringReaderByteLengthInit,
+	StringReaderCountInit,
+	StringReaderTerminatorInit,
+} from './primitives/string.js';
 import type {
 	AsyncDataReader,
 	AsyncDataReaderLike,
@@ -75,10 +79,15 @@ export class DataType<Value> extends Enum<'DataType', void>(id) {
 		byteOrder?: ByteOrder,
 	): InternalDataReader<string>;
 	static string(decoder: Decoder, { count }: StringReaderCountInit, byteOrder?: ByteOrder): InternalDataReader<string>;
+	static string(
+		decoder: Decoder,
+		{ byteLength }: StringReaderByteLengthInit,
+		byteOrder?: ByteOrder,
+	): InternalDataReader<string>;
 	static string(decoder: Decoder, byteOrder?: ByteOrder): InternalDataReader<string>;
 	static string(
 		decoder: Decoder,
-		initOrByteOrder?: StringReaderTerminatorInit | StringReaderCountInit | ByteOrder,
+		initOrByteOrder?: StringReaderTerminatorInit | StringReaderCountInit | StringReaderByteLengthInit | ByteOrder,
 		byteOrder?: ByteOrder,
 	): InternalDataReader<string> {
 		if (initOrByteOrder instanceof ByteOrder) {

@@ -11,9 +11,13 @@ export interface StringReaderCountInit {
 	readonly count: number;
 }
 
+export interface StringReaderByteLengthInit {
+	readonly byteLength: number;
+}
+
 export type StringReaderFactory = (
 	decoder: Decoder,
-	init?: Partial<StringReaderTerminatorInit & StringReaderCountInit>,
+	init?: Partial<StringReaderTerminatorInit & StringReaderCountInit & StringReaderByteLengthInit>,
 	byteOrder?: ByteOrder,
 ) => InternalDataReader<string>;
 
@@ -42,7 +46,7 @@ const combineParts = (result: PartialResult) => {
 export const stringReader: StringReaderFactory = (
 	decoder,
 	// eslint-disable-next-line @typescript-eslint/default-param-last
-	{ terminator = '\0', count = -1 } = {},
+	{ terminator = '\0', count = -1, byteLength = -1 } = {},
 	byteOrder,
 ) => {
 	const char = charReader(decoder, byteOrder);
@@ -58,32 +62,42 @@ export const stringReader: StringReaderFactory = (
 				};
 			}
 
-			let { offset } = state;
-
 			const result: PartialResult = {
 				value: '',
 				sourceParts: [],
 				sourceLength: 0,
 			};
 
-			let { value, source } = char(state);
+			let { offset } = state;
 
-			offset += source.byteLength;
+			if (byteLength >= 0) {
+				while (result.sourceLength < byteLength) {
+					const { value, source } = char({ ...state, offset });
+					result.sourceParts.push(source);
+					result.sourceLength += source.byteLength;
+					result.value += value;
+					offset += source.byteLength;
+				}
+			} else {
+				let { value, source } = char(state);
 
-			while (value !== terminator && offset < state.buffer.byteLength) {
+				offset += source.byteLength;
+
+				while (value !== terminator && offset < state.buffer.byteLength) {
+					result.sourceParts.push(source);
+					result.sourceLength += source.byteLength;
+					result.value += value;
+					({ value, source } = char({ ...state, offset }));
+					offset += source.byteLength;
+				}
+
+				if (value !== terminator) {
+					result.value += value;
+				}
+
 				result.sourceParts.push(source);
 				result.sourceLength += source.byteLength;
-				result.value += value;
-				({ value, source } = char({ ...state, offset }));
-				offset += source.byteLength;
 			}
-
-			if (value !== terminator) {
-				result.value += value;
-			}
-
-			result.sourceParts.push(source);
-			result.sourceLength += source.byteLength;
 
 			return combineParts(result);
 		},
@@ -105,24 +119,34 @@ export const stringReader: StringReaderFactory = (
 				sourceLength: 0,
 			};
 
-			let { value, source } = char(state);
+			if (byteLength >= 0) {
+				while (result.sourceLength < byteLength) {
+					const { value, source } = char({ ...state, buffer, offset });
+					result.sourceParts.push(source);
+					result.sourceLength += source.byteLength;
+					result.value += value;
+					({ buffer, offset } = await advanceOffset(source.byteLength));
+				}
+			} else {
+				let { value, source } = char(state);
 
-			({ buffer, offset } = await advanceOffset(source.byteLength));
+				({ buffer, offset } = await advanceOffset(source.byteLength));
 
-			while (value !== terminator && offset < buffer.length) {
+				while (value !== terminator && offset < buffer.length) {
+					result.sourceParts.push(source);
+					result.sourceLength += source.byteLength;
+					result.value += value;
+					({ value, source } = char({ buffer, offset, byteOrder: state.byteOrder }));
+					({ buffer, offset } = await advanceOffset(source.byteLength));
+				}
+
+				if (value !== terminator) {
+					result.value += value;
+				}
+
 				result.sourceParts.push(source);
 				result.sourceLength += source.byteLength;
-				result.value += value;
-				({ value, source } = char({ buffer, offset, byteOrder: state.byteOrder }));
-				({ buffer, offset } = await advanceOffset(source.byteLength));
 			}
-
-			if (value !== terminator) {
-				result.value += value;
-			}
-
-			result.sourceParts.push(source);
-			result.sourceLength += source.byteLength;
 
 			return combineParts(result);
 		},

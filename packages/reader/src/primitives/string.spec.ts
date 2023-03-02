@@ -1,5 +1,6 @@
 import test from 'ava';
 
+import { ByteOrder } from '../byte-order.js';
 import { Encoding } from '../encoding.js';
 import { stringReader } from './string.js';
 
@@ -48,6 +49,29 @@ test('sync', ({ deepEqual, throws }) => {
 	});
 
 	throws(() => readCount.sync({ buffer, offset: 6 }));
+
+	const readByteLengthAscii = stringReader(Encoding.ASCII, { byteLength: 6 });
+
+	deepEqual(readByteLengthAscii.sync({ buffer, offset: 0 }), {
+		value: '123\0ab',
+		source: buffer.subarray(0, 6),
+	});
+
+	throws(() => readByteLengthAscii.sync({ buffer, offset: 2 }));
+
+	const readByteLengthUtf16 = stringReader(Encoding.UTF16, { byteLength: 5 }, ByteOrder.BigEndian);
+
+	deepEqual(readByteLengthUtf16.sync({ buffer, offset: 0 }), {
+		value: '\u3132\u3300\u6162',
+		source: buffer.subarray(0, 6),
+	});
+
+	const readByteLengthNone = stringReader(Encoding.ASCII, { byteLength: 0 });
+
+	deepEqual(readByteLengthNone.sync({ buffer, offset: 0 }), {
+		value: '',
+		source: buffer.subarray(0, 0),
+	});
 });
 
 test('async', async ({ deepEqual, throwsAsync }) => {
@@ -110,4 +134,24 @@ test('async', async ({ deepEqual, throwsAsync }) => {
 	});
 
 	await throwsAsync(async () => readCount.async({ buffer: buffer.subarray(6, 7), offset: 0 }, advanceOffset));
+
+	offset = 0;
+
+	const readByteLengthAscii = stringReader(Encoding.ASCII, { byteLength: 6 });
+
+	deepEqual(await readByteLengthAscii.async({ buffer: buffer.subarray(0, 2), offset: 0 }, advanceOffset), {
+		value: '123\0ab',
+		source: buffer.subarray(0, 6),
+	});
+
+	await throwsAsync(async () => readByteLengthAscii.async({ buffer: buffer.subarray(2, 4), offset: 2 }, advanceOffset));
+
+	offset = 0;
+
+	const readByteLengthUtf16 = stringReader(Encoding.UTF16, { byteLength: 5 }, ByteOrder.BigEndian);
+
+	deepEqual(await readByteLengthUtf16.async({ buffer: buffer.subarray(0, 2), offset: 0 }, advanceOffset), {
+		value: '\u3132\u3300\u6162',
+		source: buffer.subarray(0, 6),
+	});
 });
