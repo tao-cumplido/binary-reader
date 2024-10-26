@@ -1,13 +1,7 @@
 {
 	"files": [],
 	"references": [
-		{ "path": "packages/enum/tsconfig.json" },
-		{ "path": "packages/enum/tsconfig.cjs.json" },
-		{ "path": "packages/reader/tsconfig.json" },
-		{ "path": "packages/reader/tsconfig.cjs.json" },
 		{ "path": "packages/reader/tsconfig.test.json" },
-		{ "path": "packages/node-file-reader/tsconfig.json" },
-		{ "path": "packages/node-file-reader/tsconfig.cjs.json" },
 		{ "path": "packages/node-file-reader/tsconfig.test.json" }
 	]
 }

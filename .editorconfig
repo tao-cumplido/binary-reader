@@ -1,9 +1,5 @@
-# https://editorconfig.org
-root = true
-
 [*]
 indent_style = tab
-indent_size = 3
 end_of_line = lf
 charset = utf-8
 trim_trailing_whitespace = true
@@ -15,3 +11,4 @@ trim_trailing_whitespace = false
 
 [**/node_modules/**]
 indent_style = unset
+indent_size = unset

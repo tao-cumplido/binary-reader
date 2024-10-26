@@ -1,4 +1,5 @@
 node_modules
+eslint-typegen.d.ts
 dist
 *.tsbuildinfo
 *.tgz

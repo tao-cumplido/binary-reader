@@ -19,10 +19,10 @@ export function assertInt(
 		min = -Infinity,
 		max = Infinity,
 		values = [],
-		message = values.length ? `expected integer in [${values.join(', ')}]` : `expected integer in range [${min}, ${max}]`,
+		message = values.length ? `expected integer in [${values.join(", ")}]` : `expected integer in range [${min}, ${max}]`,
 	}: Partial<AssertIntMinMax & AssertIntValues> = {},
 ): void {
-	const check = (() => {
+	const check = () => {
 		if (!Number.isInteger(value)) {
 			return false;
 		}
@@ -32,9 +32,9 @@ export function assertInt(
 		}
 
 		return value >= min && value <= max;
-	})();
+	};
 
-	if (!check) {
+	if (!check()) {
 		throw new TypeError(message);
 	}
 }

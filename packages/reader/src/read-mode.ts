@@ -1,10 +1,10 @@
-import { Enum } from '@nishin/enum';
+import { Enum } from "@shigen/enum";
 
-const id = Symbol('ReadMode');
+const id = Symbol("ReadMode");
 
-export class ReadMode<T extends string = string> extends Enum<'ReadMode', void>(id) {
-	static readonly Value = new ReadMode(id, 'value');
-	static readonly Source = new ReadMode(id, 'source');
+export class ReadMode<T extends string = string> extends Enum<{ Brand: "ReadMode"; }>(id) {
+	static readonly Value = new ReadMode(id, "value");
+	static readonly Source = new ReadMode(id, "source");
 
 	readonly type: T;
 

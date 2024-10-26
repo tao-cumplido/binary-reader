@@ -1,16 +1,16 @@
-import type { BytesValue, SyncDataReaderLike } from './types.js';
-import { assertInt } from './assert.js';
-import { ByteOrder } from './byte-order.js';
-import { DataType } from './data-type.js';
-import { Encoding } from './encoding.js';
-import { ReadError } from './read-error.js';
-import { ReadMode } from './read-mode.js';
+import { assertInt } from "./assert.js";
+import { ByteOrder } from "./byte-order.js";
+import { DataType } from "./data-type.js";
+import { Encoding } from "./encoding.js";
+import { ReadError } from "./read-error.js";
+import { ReadMode } from "./read-mode.js";
+import type { BytesValue, SyncDataReaderLike } from "./types.js";
 
 export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 	#offset = 0;
 
 	#buffer: Buffer;
-	#byteOrder?: ByteOrder;
+	#byteOrder: ByteOrder | undefined;
 
 	get offset(): number {
 		return this.#offset;
@@ -37,7 +37,7 @@ export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 	 * Query whether there are any bytes left to read. The number of bytes to query defaults to 1.
 	 */
 	hasNext(byteLength = 1): boolean {
-		assertInt(byteLength, { min: 1 });
+		assertInt(byteLength, { min: 1, });
 		return this.#offset + byteLength <= this.#buffer.length;
 	}
 
@@ -55,8 +55,8 @@ export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 	readByteOrderMark(offset = this.#offset): void {
 		this.seek(offset);
 
-		const byteOrder = ByteOrder.lookupValue(
-			this.next(DataType.int({ signed: false, byteLength: 2 }, ByteOrder.BigEndian)),
+		const byteOrder = ByteOrder.lookupKey(
+			this.next(DataType.int({ signed: false, byteLength: 2, }, ByteOrder.BigEndian)),
 		);
 
 		if (!byteOrder) {
@@ -73,8 +73,8 @@ export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 	assertMagic(magic: string | Uint8Array, offset = this.#offset): void {
 		this.seek(offset);
 
-		if (typeof magic === 'string') {
-			const value = this.next(DataType.string(Encoding.ASCII, { count: magic.length }));
+		if (typeof magic === "string") {
+			const value = this.next(DataType.string(Encoding.ASCII, { count: magic.length, }));
 			if (magic !== value) {
 				throw new TypeError(`invalid magic: expected '${magic}', got '${value}`);
 			}
@@ -83,10 +83,9 @@ export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 			for (let i = 0; i < value.length; i++) {
 				if (value[i] !== magic[i]) {
 					throw new TypeError(
-						// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-						`invalid magic: expected 0x${magic[i]?.toString(16).padStart(2, '0')} at position ${i}, got 0x${value[i]
+						`invalid magic: expected 0x${magic[i]?.toString(16).padStart(2, "0")} at position ${i}, got 0x${value[i]
 							?.toString(16)
-							.padStart(2, '0')}`,
+							.padStart(2, "0")}`,
 					);
 				}
 			}
@@ -107,7 +106,7 @@ export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 	 * Set the read offset.
 	 */
 	seek(offset: number): void {
-		assertInt(offset, { min: 0, max: this.#buffer.length });
+		assertInt(offset, { min: 0, max: this.#buffer.length, });
 		this.#offset = offset;
 	}
 
@@ -115,7 +114,7 @@ export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 	 * Advance the read offset by number of bytes given.
 	 */
 	skip(bytes: number): void {
-		assertInt(bytes, { min: 0 });
+		assertInt(bytes, { min: 0, });
 		this.seek(this.#offset + bytes);
 	}
 
@@ -123,7 +122,7 @@ export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 	 * Align the read offset to the nearest multiple.
 	 */
 	align(to: number): void {
-		assertInt(to, { min: 0 });
+		assertInt(to, { min: 0, });
 		this.skip(((-this.#offset % to) + to) % to);
 	}
 
@@ -133,7 +132,7 @@ export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 	next<Value>(type: SyncDataReaderLike<Value>, mode: typeof ReadMode.Source): BytesValue<Value>;
 	next<Value>(type: SyncDataReaderLike<Value>, mode?: typeof ReadMode.Value): Value;
 	next<Value>(type: SyncDataReaderLike<Value>, mode: ReadMode = ReadMode.Value): BytesValue<Value> | Value {
-		const read = typeof type === 'function' ? type : type.sync;
+		const read = typeof type === "function" ? type : type.sync;
 
 		const result = read({
 			buffer: this.#buffer,

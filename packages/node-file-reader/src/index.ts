@@ -1,3 +1,4 @@
+export { NodeFileReader } from "./node-file-reader.js";
 export type {
 	AsyncDataReader,
 	AsyncDataReaderLike,
@@ -6,6 +7,5 @@ export type {
 	DataReaderState,
 	FloatBytes,
 	SafeIntBytes,
-} from '@nishin/reader';
-export { repeat, repeatAsync, ByteOrder, DataType, Encoding, ReadError, ReadMode } from '@nishin/reader';
-export { NodeFileReader } from './node-file-reader.js';
+} from "@nishin/reader";
+export { ByteOrder, DataType, Encoding, ReadError, ReadMode, repeat, repeatAsync } from "@nishin/reader";

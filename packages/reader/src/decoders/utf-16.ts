@@ -1,12 +1,12 @@
-import type { Decoder } from '../types.js';
-import { intReader } from '../primitives/int.js';
-import { ReadError } from '../read-error.js';
+import { intReader } from "../primitives/int.js";
+import { ReadError } from "../read-error.js";
+import type { Decoder } from "../types.js";
 
-const uint16 = intReader({ signed: false, byteLength: 2 });
+const uint16 = intReader({ signed: false, byteLength: 2, });
 
 export const utf16: Decoder = {
-	decode: ({ buffer, offset, byteOrder }) => {
-		const high = uint16({ buffer, offset, byteOrder });
+	decode: ({ buffer, offset, byteOrder, }) => {
+		const high = uint16({ buffer, offset, byteOrder, });
 
 		if (high.value < 0xd800 || high.value >= 0xe000) {
 			return {
@@ -15,7 +15,7 @@ export const utf16: Decoder = {
 			};
 		}
 
-		const low = uint16({ buffer, offset: offset + 2, byteOrder });
+		const low = uint16({ buffer, offset: offset + 2, byteOrder, });
 
 		const source = new Uint8Array(high.source.byteLength + low.source.byteLength);
 

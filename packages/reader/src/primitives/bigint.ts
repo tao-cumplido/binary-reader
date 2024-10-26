@@ -1,7 +1,7 @@
-import type { DataReader } from '../types.js';
-import { assertInt } from '../assert.js';
-import { ByteOrder } from '../byte-order.js';
-import { ReadError } from '../read-error.js';
+import { assertInt } from "../assert.js";
+import { ByteOrder } from "../byte-order.js";
+import { ReadError } from "../read-error.js";
+import type { DataReader } from "../types.js";
 
 export interface BigIntReaderInit {
 	readonly signed: boolean;
@@ -15,11 +15,11 @@ export const errorMessage = {
 	unexpectedBufferEnd: (byteLength: number, offset: number) => `couldn't read ${byteLength} bytes from offset ${offset}`,
 } as const;
 
-export const bigintReader: BigIntReaderFactory = ({ signed, byteLength }, initByteOrder?) => {
-	assertInt(byteLength, { min: 1 });
+export const bigintReader: BigIntReaderFactory = ({ signed, byteLength, }, initByteOrder?) => {
+	assertInt(byteLength, { min: 1, });
 
 	const reader: DataReader<bigint> = (state) => {
-		const { buffer, offset } = state;
+		const { buffer, offset, } = state;
 		const byteOrder = initByteOrder ?? state.byteOrder;
 
 		const byteList = buffer.subarray(offset, offset + byteLength);

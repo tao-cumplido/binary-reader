@@ -2,6 +2,5 @@
 
 This is the monorepo for the following packages:
 
-- [@nishin/enum](packages/enum)
 - [@nishin/reader](packages/reader)
 - [@nishin/async-reader](packages/async-reader)

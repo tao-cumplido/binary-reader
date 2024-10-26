@@ -1,7 +1,7 @@
-import type { AsyncDataReaderLike, BytesValue, InternalDataReader, UniformReadonlyTuple } from '../types.js';
-import { assertInt } from '../assert.js';
-import { ReadError } from '../read-error.js';
-import { repeat, repeatAsync } from '../repeat.js';
+import { assertInt } from "../assert.js";
+import { ReadError } from "../read-error.js";
+import { repeat, repeatAsync } from "../repeat.js";
+import type { AsyncDataReaderLike, BytesValue, InternalDataReader, UniformReadonlyTuple } from "../types.js";
 
 export type ArrayReaderFactory = <Value, Count extends number>(
 	type: AsyncDataReaderLike<Value>,
@@ -38,27 +38,26 @@ export const errorMessage = {
 } as const;
 
 export const arrayReader: ArrayReaderFactory = (type, count) => {
-	assertInt(count, { min: 0 });
+	assertInt(count, { min: 0, });
 
-	const readSync = typeof type === 'function' ? type : type.sync;
-	const readAsync = typeof type === 'object' ? type.async : undefined;
+	const readSync = typeof type === "function" ? type : type.sync;
+	const readAsync = typeof type === "object" ? type.async : undefined;
 
 	return {
-		sync: ({ buffer, offset, byteOrder }) => {
+		sync: ({ buffer, offset, byteOrder, }) => {
 			if (!readSync) {
 				throw new ReadError(errorMessage.missingSyncRead(), buffer.subarray());
 			}
 
 			const items = repeat(count, () => {
-				const result = readSync({ buffer, offset, byteOrder });
+				const result = readSync({ buffer, offset, byteOrder, });
 				offset += result.source.byteLength;
 				return result;
 			});
 
-			// eslint-disable-next-line @typescript-eslint/no-unsafe-return
 			return combineItems(items) as any;
 		},
-		async: async ({ buffer, offset, byteOrder }, advanceOffset) => {
+		async: async ({ buffer, offset, byteOrder, }, advanceOffset) => {
 			const read = readAsync ?? readSync;
 
 			if (!read) {
@@ -66,22 +65,21 @@ export const arrayReader: ArrayReaderFactory = (type, count) => {
 			}
 
 			const items = await repeatAsync(count, async () => {
-				const valueOrPromise = read({ buffer, offset, byteOrder }, advanceOffset);
+				const valueOrPromise = read({ buffer, offset, byteOrder, }, advanceOffset);
 
 				if (valueOrPromise instanceof Promise) {
 					const result = await valueOrPromise;
-					// eslint-disable-next-line require-atomic-updates
-					({ buffer, offset } = await advanceOffset(0));
+
+					({ buffer, offset, } = await advanceOffset(0));
 					return result;
 				}
 
-				// eslint-disable-next-line require-atomic-updates
-				({ buffer, offset } = await advanceOffset(valueOrPromise.source.byteLength));
+
+				({ buffer, offset, } = await advanceOffset(valueOrPromise.source.byteLength));
 
 				return valueOrPromise;
 			});
 
-			// eslint-disable-next-line @typescript-eslint/no-unsafe-return
 			return combineItems(items) as any;
 		},
 	};

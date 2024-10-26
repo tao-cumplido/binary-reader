@@ -1,7 +1,7 @@
-import type { DataReader } from '../types.js';
-import { assertInt } from '../assert.js';
-import { ByteOrder } from '../byte-order.js';
-import { ReadError } from '../read-error.js';
+import { assertInt } from "../assert.js";
+import { ByteOrder } from "../byte-order.js";
+import { ReadError } from "../read-error.js";
+import type { DataReader } from "../types.js";
 
 export type FloatBytes = 4 | 8;
 
@@ -15,11 +15,11 @@ export const errorMessage = {
 	noByteOrder: () => `cannot read float value with unspecified byte order`,
 } as const;
 
-export const floatReader: FloatReaderFactory = ({ byteLength }, initByteOrder?: ByteOrder) => {
-	assertInt(byteLength, { values: [4, 8] });
+export const floatReader: FloatReaderFactory = ({ byteLength, }, initByteOrder?: ByteOrder) => {
+	assertInt(byteLength, { values: [ 4, 8, ], });
 
 	const reader: DataReader<number> = (state) => {
-		const { buffer, offset } = state;
+		const { buffer, offset, } = state;
 		const byteOrder = initByteOrder ?? state.byteOrder;
 		const source = buffer.subarray(offset, offset + byteLength);
 

@@ -1,8 +1,7 @@
-import type { FileHandle } from 'fs/promises';
-import { fstatSync } from 'fs';
+import { fstatSync } from "node:fs";
+import type { FileHandle } from "node:fs/promises";
 
-import type { AsyncReaderConfig } from '@nishin/reader';
-import { AsyncReader, ByteOrder } from '@nishin/reader';
+import { AsyncReader, ByteOrder, type AsyncReaderConfig } from "@nishin/reader";
 
 export class NodeFileReader extends AsyncReader<Buffer> {
 	#fileHandle: FileHandle;
@@ -11,17 +10,17 @@ export class NodeFileReader extends AsyncReader<Buffer> {
 		return this.#fileHandle;
 	}
 
-	constructor(fileHandle: FileHandle, byteOrder?: ByteOrder, { bufferSize }?: AsyncReaderConfig);
-	constructor(fileHandle: FileHandle, { bufferSize }: AsyncReaderConfig);
+	constructor(fileHandle: FileHandle, byteOrder?: ByteOrder, { bufferSize, }?: AsyncReaderConfig);
+	constructor(fileHandle: FileHandle, { bufferSize, }: AsyncReaderConfig);
 	constructor(fileHandle: FileHandle, byteOrderOrConfig?: ByteOrder | AsyncReaderConfig, config?: AsyncReaderConfig) {
 		const byteOrder = byteOrderOrConfig instanceof ByteOrder ? byteOrderOrConfig : undefined;
 		const resolvedConfig = byteOrderOrConfig instanceof ByteOrder ? config : byteOrderOrConfig;
 
 		super(
 			fstatSync(fileHandle.fd).size,
-			async ({ offset, size }) => {
+			async ({ offset, size, }) => {
 				const buffer = Buffer.alloc(size);
-				const { bytesRead } = await fileHandle.read(buffer, 0, size, offset);
+				const { bytesRead, } = await fileHandle.read(buffer, 0, size, offset);
 				return buffer.subarray(0, bytesRead);
 			},
 			byteOrder,

@@ -1,22 +1,22 @@
-import type { AsyncDataReaderLike, BytesValue } from './types.js';
-import { assertInt } from './assert.js';
-import { ByteOrder } from './byte-order.js';
-import { DataType } from './data-type.js';
-import { Encoding } from './encoding.js';
-import { ReadError } from './read-error.js';
-import { ReadMode } from './read-mode.js';
+import { assertInt } from "./assert.js";
+import { ByteOrder } from "./byte-order.js";
+import { DataType } from "./data-type.js";
+import { Encoding } from "./encoding.js";
+import { ReadError } from "./read-error.js";
+import { ReadMode } from "./read-mode.js";
+import type { AsyncDataReaderLike, BytesValue } from "./types.js";
 
 export interface AsyncReaderConfig {
 	readonly bufferSize: number;
 }
 
-export type UpdateBuffer<Buffer extends Uint8Array> = (state: { offset: number; size: number }) => Promise<Buffer>;
+export type UpdateBuffer<Buffer extends Uint8Array> = (state: { offset: number; size: number; }) => Promise<Buffer>;
 
 export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 	#byteLength: number;
 	#updateBuffer: UpdateBuffer<Buffer>;
 	#bufferSize: number;
-	#byteOrder?: ByteOrder;
+	#byteOrder: ByteOrder | undefined;
 	#buffer?: Buffer;
 
 	#bufferStart = 0;
@@ -44,7 +44,7 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 		byteLength: number,
 		updateBuffer: UpdateBuffer<Buffer>,
 		byteOrderOrConfig?: ByteOrder | AsyncReaderConfig,
-		{ bufferSize = 2 ** 20 * 10 } = {},
+		{ bufferSize = 2 ** 20 * 10, } = {},
 	) {
 		this.#byteLength = byteLength;
 		this.#updateBuffer = updateBuffer;
@@ -58,7 +58,7 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 		const bufferOffset = this.#offset - this.#bufferStart;
 
 		if (bufferOffset + delta < 0 || bufferOffset + delta >= buffer.byteLength) {
-			this.#buffer = await this.#updateBuffer({ offset: position, size: this.#bufferSize });
+			this.#buffer = await this.#updateBuffer({ offset: position, size: this.#bufferSize, });
 			this.#bufferStart = position;
 		}
 
@@ -67,14 +67,14 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 
 	async getBuffer(): Promise<Buffer> {
 		if (!this.#buffer) {
-			this.#buffer = await this.#updateBuffer({ offset: 0, size: this.#bufferSize });
+			this.#buffer = await this.#updateBuffer({ offset: 0, size: this.#bufferSize, });
 		}
 
 		return this.#buffer;
 	}
 
 	hasNext(byteLength = 1): boolean {
-		assertInt(byteLength, { min: 1 });
+		assertInt(byteLength, { min: 1, });
 		return this.#offset + byteLength <= this.#byteLength;
 	}
 
@@ -87,34 +87,34 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 		const currentOffset = this.#offset;
 		return new AsyncReader(
 			size,
-			async ({ offset }) => this.#updateBuffer({ offset: currentOffset - size + offset, size: this.#bufferSize }),
+			async ({ offset, }) => this.#updateBuffer({ offset: currentOffset - size + offset, size: this.#bufferSize, }),
 			this.#byteOrder,
-			{ bufferSize: this.#bufferSize },
+			{ bufferSize: this.#bufferSize, },
 		);
 	}
 
 	async seek(offset: number): Promise<void> {
-		assertInt(offset, { min: 0, max: this.#byteLength });
+		assertInt(offset, { min: 0, max: this.#byteLength, });
 		const delta = offset - this.#offset;
 		await this.#checkBufferBounds(delta);
 	}
 
 	async skip(bytes: number): Promise<void> {
-		assertInt(bytes, { min: 0 });
+		assertInt(bytes, { min: 0, });
 		await this.seek(this.#offset + bytes);
 	}
 
 	async align(to: number): Promise<void> {
-		assertInt(to, { min: 0 });
+		assertInt(to, { min: 0, });
 		await this.skip(((-this.offset % to) + to) % to);
 	}
 
 	async readByteOrderMark(offset = this.#offset): Promise<void> {
 		await this.seek(offset);
 
-		const value = await this.next(DataType.int({ signed: false, byteLength: 2 }, ByteOrder.BigEndian));
+		const value = await this.next(DataType.int({ signed: false, byteLength: 2, }, ByteOrder.BigEndian));
 
-		const byteOrder = ByteOrder.lookupValue(value);
+		const byteOrder = ByteOrder.lookupKey(value);
 
 		if (!byteOrder) {
 			throw new TypeError(`invalid byte order mark`);
@@ -126,8 +126,8 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 	async assertMagic(magic: string | Uint8Array, offset = this.#offset): Promise<void> {
 		await this.seek(offset);
 
-		if (typeof magic === 'string') {
-			const value = await this.next(DataType.string(Encoding.ASCII, { count: magic.length }));
+		if (typeof magic === "string") {
+			const value = await this.next(DataType.string(Encoding.ASCII, { count: magic.length, }));
 			if (magic !== value) {
 				throw new TypeError(`invalid magic: expected '${magic}', got '${value}`);
 			}
@@ -137,10 +137,9 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 			for (let i = 0; i < value.length; i++) {
 				if (value[i] !== magic[i]) {
 					throw new TypeError(
-						// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-						`invalid magic: expected 0x${magic[i]?.toString(16).padStart(2, '0')} at position ${i}, got 0x${value[i]
+						`invalid magic: expected 0x${magic[i]?.toString(16).padStart(2, "0")} at position ${i}, got 0x${value[i]
 							?.toString(16)
-							.padStart(2, '0')}`,
+							.padStart(2, "0")}`,
 					);
 				}
 			}
@@ -153,7 +152,7 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 		type: AsyncDataReaderLike<Value>,
 		mode: ReadMode = ReadMode.Value,
 	): Promise<BytesValue<Value> | Value> {
-		const read = typeof type === 'function' ? type : type.async ?? type.sync;
+		const read = typeof type === "function" ? type : type.async ?? type.sync;
 
 		if (!read) {
 			throw new Error(`invalid state: missing reader function`);

@@ -15,26 +15,25 @@
 	"author": "Tao Cumplido",
 	"repository": "https://github.com/tao-cumplido/binary-reader/tree/main/packages/reader",
 	"bugs": "https://github.com/tao-cumplido/binary-reader/issues",
-	"type": "module",
+	"scripts": {
+		"build": "tscd",
+		"test": "tsx --tsconfig tsconfig.test.json --test-reporter @voxpelli/node-test-pretty-reporter --test 'src/**/*.test.ts'"
+	},
+	"dependencies": {
+		"@shigen/enum": "~0.5.0"
+	},
 	"exports": {
 		".": {
 			"import": {
-				"types": "./dist/esm/index.d.ts",
-				"default": "./dist/esm/index.js"
+				"types": "./dist/module/index.d.ts",
+				"default": "./dist/module/index.js"
 			},
 			"require": {
-				"types": "./dist/cjs/index.d.cts",
-				"default": "./dist/cjs/index.cjs"
+				"types": "./dist/commonjs/index.d.ts",
+				"default": "./dist/commonjs/index.js"
 			}
 		}
 	},
-	"types": "./dist/cjs/index.d.cts",
-	"main": "./dist/cjs/index.cjs",
-	"scripts": {
-		"build": "tsc",
-		"test": "ava"
-	},
-	"dependencies": {
-		"@nishin/enum": "~0.3.0"
-	}
+	"types": "./dist/commonjs/index.d.ts",
+	"main": "./dist/commonjs/index.js"
 }
