@@ -5,6 +5,8 @@ import type { Decoder } from "../types.js";
 const uint8 = intReader({ signed: false, byteLength: 1, });
 
 export const utf8: Decoder = {
+	minBytes: 1,
+	maxBytes: 4,
 	decode: ({ buffer, offset, }) => {
 		const { value: byte1, } = uint8({ buffer, offset: offset++, });
 
@@ -83,5 +85,4 @@ export const utf8: Decoder = {
 			source,
 		};
 	},
-	maxRequiredBytes: 4,
 };

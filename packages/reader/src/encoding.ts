@@ -17,12 +17,14 @@ export class Encoding extends Enum<{ Brand: "Encoding"; }>(id) implements Decode
 	static readonly UTF32 = new Encoding(id, utf32);
 
 	readonly decode: DataReader<string>;
-	readonly maxRequiredBytes: number;
+	readonly minBytes: number;
+	readonly maxBytes: number;
 
 	private constructor(check: symbol, decoder: Decoder) {
 		super(check);
 
 		this.decode = decoder.decode;
-		this.maxRequiredBytes = decoder.maxRequiredBytes;
+		this.minBytes = decoder.minBytes;
+		this.maxBytes = decoder.maxBytes;
 	}
 }

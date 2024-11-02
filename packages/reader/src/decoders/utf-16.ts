@@ -5,6 +5,8 @@ import type { Decoder } from "../types.js";
 const uint16 = intReader({ signed: false, byteLength: 2, });
 
 export const utf16: Decoder = {
+	minBytes: 2,
+	maxBytes: 4,
 	decode: ({ buffer, offset, byteOrder, }) => {
 		const high = uint16({ buffer, offset, byteOrder, });
 
@@ -31,5 +33,4 @@ export const utf16: Decoder = {
 			source,
 		};
 	},
-	maxRequiredBytes: 4,
 };

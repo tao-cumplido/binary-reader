@@ -10,7 +10,7 @@ export const charReader: CharReaderFactory = (decoder, initByteOrder) => {
 		return decoder.decode({ buffer, offset, byteOrder, });
 	};
 
-	reader.maxRequiredBytes = decoder.maxRequiredBytes;
+	reader.maxRequiredBytes = decoder.maxBytes;
 
 	return reader;
 };

@@ -5,6 +5,8 @@ import type { Decoder } from "../types.js";
 const uint32 = intReader({ signed: false, byteLength: 4, });
 
 export const utf32: Decoder = {
+	minBytes: 4,
+	maxBytes: 4,
 	decode: ({ buffer, offset, byteOrder, }) => {
 		const { value, source, } = uint32({ buffer, offset, byteOrder, });
 
@@ -17,5 +19,4 @@ export const utf32: Decoder = {
 			source,
 		};
 	},
-	maxRequiredBytes: 4,
 };
