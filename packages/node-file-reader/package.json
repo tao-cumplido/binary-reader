@@ -1,6 +1,6 @@
 {
 	"name": "@nishin/node-file-reader",
-	"version": "0.5.0",
+	"version": "0.6.0",
 	"description": "Read various data types from a Node.JS file handle in a streamlined way",
 	"keywords": [
 		"binary",

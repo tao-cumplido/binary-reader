@@ -33,4 +33,8 @@ export class NodeFileReader extends AsyncReader<Buffer> {
 	async close(): Promise<void> {
 		await this.#fileHandle.close();
 	}
+
+	async [Symbol.asyncDispose](): Promise<void> {
+		await this.close();
+	}
 }
