@@ -1,16 +1,27 @@
 import { assertInt } from "./assert.js";
+import { BinaryReader } from "./binary-reader.js";
 import { ByteOrder } from "./byte-order.js";
 import { DataType } from "./data-type.js";
 import { Encoding } from "./encoding.js";
+import { matchPattern } from "./pattern/match.js";
 import { ReadError } from "./read-error.js";
 import { ReadMode } from "./read-mode.js";
-import type { AsyncDataReaderLike, BytesValue } from "./types.js";
+import type { AsyncDataReaderLike, AsyncSearchItem, BytesValue } from "./types.js";
 
 export interface AsyncReaderConfig {
 	readonly bufferSize: number;
 }
 
 export type UpdateBuffer<Buffer extends Uint8Array> = (state: { offset: number; size: number; }) => Promise<Buffer>;
+
+type AsyncReaderFindOptions = {
+	readonly offset?: undefined | number;
+	readonly signal?: undefined | {
+		readonly aborted: boolean;
+		readonly reason: unknown;
+		throwIfAborted(): void;
+	};
+};
 
 export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 	#byteLength: number;
@@ -196,5 +207,80 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 			await this.seek(initialOffset);
 			throw error;
 		}
+	}
+
+	async #parseSearchItem(item: AsyncSearchItem<Buffer>, backreferences: BinaryReader) {
+		if (typeof item === "number") {
+			const value = await this.next(DataType.Uint8);
+			return item === value;
+		}
+
+		if (typeof item === "string") {
+			const validate = matchPattern(item);
+			const value = await this.next(DataType.Uint8);
+			return validate(value, backreferences.buffer);
+		}
+
+		const currentOffset = this.#offset;
+		const result = await item(this.next.bind(this), backreferences);
+
+		if (!result) {
+			await this.seek(currentOffset);
+		}
+
+		return result;
+	}
+
+	/**
+	 * Search for a given sequence from current or given offset.
+	 * Returns the offset where the found sequence starts or undefined.
+	 * If a sequence is found, the read offset will point behind the sequence.
+	 * An AbortSignal can be passed as option to cancel potentially long running searches.
+	 */
+	async find(sequence: readonly AsyncSearchItem<Buffer>[], { offset = this.#offset, signal, }: AsyncReaderFindOptions = {}): Promise<number | undefined> {
+		signal?.throwIfAborted();
+
+		const initialOffset = this.#offset;
+
+		await this.seek(offset);
+
+		if (!this.hasNext()) {
+			await this.seek(initialOffset);
+			return;
+		}
+
+		for (const item of sequence) {
+			const currentOffset = this.#offset;
+			await this.seek(offset);
+			const referenceBuffer = await this.next(DataType.array(DataType.Uint8, currentOffset - offset), ReadMode.Source);
+			const backreferences = new BinaryReader(referenceBuffer.source, this.#byteOrder);
+			await this.seek(currentOffset);
+
+			try {
+				if (!(await this.#parseSearchItem(item, backreferences))) {
+					throw new Error();
+				}
+			} catch {
+				if (signal) {
+					// abort signals are updated on the macrotask queue
+					// whereas promises by default run on the microtask queue
+					// this makes sure that updates to the signals state are actually registered
+					await new Promise((resolve) => {
+						// @ts-expect-error: no dom/node globals set to be as environment agnostic as possible
+						setImmediate(resolve);
+					});
+				}
+
+				const nextResult = await this.find(sequence, { offset: offset + 1, signal, });
+
+				if (typeof nextResult === "undefined") {
+					await this.seek(initialOffset);
+				}
+
+				return nextResult;
+			}
+		}
+
+		return offset;
 	}
 }

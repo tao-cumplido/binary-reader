@@ -20,7 +20,9 @@
 		"test": "tsx --tsconfig tsconfig.test.json --test-reporter @voxpelli/node-test-pretty-reporter --test 'src/**/*.test.ts'"
 	},
 	"dependencies": {
-		"@shigen/enum": "~0.5.0"
+		"@shigen/enum": "~0.5.0",
+		"regex": "^5.0.0",
+		"ts-pattern": "^5.5.0"
 	},
 	"exports": {
 		".": {

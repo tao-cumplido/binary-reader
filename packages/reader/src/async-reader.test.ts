@@ -138,6 +138,112 @@ test.describe("AsyncReader", () => {
 
 		assert.equal(reader.offset, 6);
 	});
+
+	test.describe("find", () => {
+		test("empty source", async () => {
+			const reader = new AsyncReader(0, updateBuffer(new Uint8Array()), { bufferSize: 2, });
+			assert.equal(await reader.find([ 0, ]), undefined);
+			assert.equal(reader.offset, 0);
+		});
+
+		test("numbers", async () => {
+			const source = new Uint8Array([ 0x00, 0x01, 0x02, 0x03, 0x01, 0x02, ]);
+			const reader = new AsyncReader(source.byteLength, updateBuffer(source), { bufferSize: 2, });
+
+			assert.equal(await reader.find([ 0x01, 0x02, ]), 1);
+			assert.equal(reader.offset, 3);
+
+			assert.equal(await reader.find([ 0x05, ]), undefined);
+			assert.equal(reader.offset, 3);
+
+			assert.equal(await reader.find([ 0x01, 0x02, ]), 4);
+			assert.equal(reader.offset, 6);
+		});
+
+		test("patterns", async () => {
+			const source = new Uint8Array([ 0x00, 0x01, 0x02, 0x03, 0x01, 0x02, ]);
+			const reader = new AsyncReader(source.byteLength, updateBuffer(source), { bufferSize: 2, });
+
+			assert.equal(await reader.find([ "0?", "??", "02", ]), 0);
+			assert.equal(reader.offset, 3);
+
+			assert.equal(await reader.find([ "0?", "??", "02", ]), 3);
+			assert.equal(reader.offset, 6);
+
+			assert.equal(await reader.find([ "??", "$0+1", ], { offset: 0, }), 0);
+			assert.equal(reader.offset, 2);
+
+			assert.equal(await reader.find([ "??", "$0+1", ]), 2);
+			assert.equal(reader.offset, 4);
+
+			assert.equal(await reader.find([ "??", "$0+1", ], { offset: 3, }), 4);
+			assert.equal(reader.offset, 6);
+		});
+
+		test("data types", async () => {
+			const source = new Uint8Array([ 0x20, 0x00, 0x00, 0x30, ]);
+			const reader = new AsyncReader(source.byteLength, updateBuffer(source), ByteOrder.BigEndian, { bufferSize: 2, });
+
+			assert.equal(await reader.find([ async (read) => {
+				const value = await read(DataType.Uint16);
+				return value === 0x2000;
+			}, ]), 0);
+			assert.equal(reader.offset, 2);
+
+			assert.equal(await reader.find([ async (read) => {
+				const value = await read(DataType.Uint16);
+				return value === 0x2000;
+			}, ]), undefined);
+			assert.equal(reader.offset, 2);
+
+			assert.equal(await reader.find([ async (read) => {
+				const value = await read(DataType.Uint16);
+				return value === 0x30;
+			}, ]), 2);
+			assert.equal(reader.offset, 4);
+		});
+
+		test("data types with backreference", async () => {
+			const source = new Uint8Array([ 0x00, 0x01, ]);
+			const reader = new AsyncReader(source.byteLength, updateBuffer(source), { bufferSize: 2, });
+
+			const result = await reader.find([
+				async (read) => {
+					const value = await read(DataType.Uint8);
+					return value === 0x00;
+				},
+				async (read, backreferences) => {
+					const reference = backreferences.next(DataType.Uint8);
+					const value = await read(DataType.Uint8);
+					return value === reference + 1;
+				},
+			]);
+
+			assert.equal(result, 0);
+			assert.equal(reader.offset, 2);
+		});
+
+		test("aborted signal", async () => {
+			const reader = new AsyncReader(0, updateBuffer(new Uint8Array()), { bufferSize: 2, });
+
+			await assert.rejects(reader.find([], { signal: AbortSignal.abort(), }), (error) => {
+				assert(error instanceof Error);
+				assert.equal(error.name, "AbortError");
+				return true;
+			});
+		});
+
+		test("timeout", async () => {
+			const source = new Uint8Array([ 0, ]);
+			const reader = new AsyncReader(Infinity, async () => source.subarray(0, 1), { bufferSize: 1, });
+
+			await assert.rejects(reader.find([ 1, ], { signal: AbortSignal.timeout(0), }), (error) => {
+				assert(error instanceof Error);
+				assert.equal(error.name, "TimeoutError");
+				return true;
+			});
+		});
+	});
 });
 
 

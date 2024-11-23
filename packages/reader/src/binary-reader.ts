@@ -2,9 +2,10 @@ import { assertInt } from "./assert.js";
 import { ByteOrder } from "./byte-order.js";
 import { DataType } from "./data-type.js";
 import { Encoding } from "./encoding.js";
+import { matchPattern } from "./pattern/match.js";
 import { ReadError } from "./read-error.js";
 import { ReadMode } from "./read-mode.js";
-import type { BytesValue, SyncDataReaderLike } from "./types.js";
+import type { BytesValue, SyncDataReaderLike, SyncSearchItem } from "./types.js";
 
 export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 	#offset = 0;
@@ -93,7 +94,7 @@ export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 	}
 
 	/**
-	 * Creates copy of the reader from the current read offset with the given size.
+	 * Creates copy of the reader from the current read offset with the given size and advances read offset by given size.
 	 * Note that the copy's underlying buffer still references the same memory.
 	 */
 	slice(size: number): BinaryReader<Buffer> {
@@ -150,5 +151,63 @@ export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 		}
 
 		throw new ReadError(`unknown read mode`, result.source);
+	}
+
+	#parseSearchItem(item: SyncSearchItem<Buffer>, backreferences: BinaryReader) {
+		if (typeof item === "number") {
+			const value = this.next(DataType.Uint8);
+			return item === value;
+		}
+
+		if (typeof item === "string") {
+			const validate = matchPattern(item);
+			const value = this.next(DataType.Uint8);
+			return validate(value, backreferences.#buffer);
+		}
+
+		const currentOffset = this.#offset;
+		const result = item(this.next.bind(this), backreferences);
+
+		if (!result) {
+			this.#offset = currentOffset;
+		}
+
+		return result;
+	}
+
+	/**
+	 * Search for a given sequence from current or given offset.
+	 * Returns the offset where the found sequence starts or undefined.
+	 * If a sequence is found, the read offset will point behind the sequence.
+	 */
+	find(sequence: readonly SyncSearchItem<Buffer>[], { offset = this.#offset, } = {}): number | undefined {
+		const initialOffset = this.#offset;
+
+		this.seek(offset);
+
+		if (!this.hasNext()) {
+			this.#offset = initialOffset;
+			return;
+		}
+
+		for (const item of sequence) {
+			const backreferences = new BinaryReader(this.#buffer.subarray(offset, this.#offset), this.#byteOrder);
+
+			try {
+				if (!this.#parseSearchItem(item, backreferences)) {
+					throw new Error();
+				}
+			} catch {
+				const nextResult = this.find(sequence, { offset: offset + 1, });
+
+				if (typeof nextResult === "undefined") {
+					this.#offset = initialOffset;
+				}
+
+				return nextResult;
+			}
+		}
+
+		return offset;
 	}
 }

@@ -1,3 +1,5 @@
+import type { AsyncReader } from "./async-reader.js";
+import type { BinaryReader } from "./binary-reader.js";
 import type { ByteOrder } from "./byte-order.js";
 
 export type Mutable<T> = {
@@ -82,3 +84,17 @@ export type Decoder = {
 	readonly maxBytes: number;
 	readonly decode: DataReader<string>;
 };
+
+export type ByteValidator = (value: number, backreferences: Uint8Array) => boolean;
+export type SearchItem = number | string;
+export type SyncSearchItem<Buffer extends Uint8Array> = SearchItem | ((next: BinaryReader<Buffer>["next"], backreferences: BinaryReader) => boolean);
+export type AsyncSearchItem<Buffer extends Uint8Array> = SearchItem | ((next: AsyncReader<Buffer>["next"], backreferences: BinaryReader) => Promise<boolean>);
+export type PatternValidator = (pattern: string) => ByteValidator | null;
+
+interface PatternExecResult<Groups> {
+	readonly groups: Readonly<Groups>;
+}
+
+export interface Pattern<Groups extends Record<string, string> | undefined = undefined> {
+	exec(value: string): PatternExecResult<Groups> | null;
+}

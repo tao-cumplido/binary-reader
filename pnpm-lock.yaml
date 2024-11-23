@@ -53,6 +53,12 @@ importers:
       '@shigen/enum':
         specifier: ~0.5.0
         version: 0.5.0
+      regex:
+        specifier: ^5.0.0
+        version: 5.0.0
+      ts-pattern:
+        specifier: ^5.5.0
+        version: 5.5.0
 
 packages:
 
@@ -968,6 +974,9 @@ packages:
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
 
+  regex@5.0.0:
+    resolution: {integrity: sha512-LO5oiSc2Kgbw1qlSQIkzeqapoPeOP3y4DxNoxjTDpuECk6xNcADfN2rJhmOxJSgrv8vQOcgbKSFuyfyPfMmlxw==}
+
   require-directory@2.1.1:
     resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}
     engines: {node: '>=0.10.0'}
@@ -1071,6 +1080,9 @@ packages:
     hasBin: true
     peerDependencies:
       typescript: '>=4.7.0'
+
+  ts-pattern@5.5.0:
+    resolution: {integrity: sha512-jqbIpTsa/KKTJYWgPNsFNbLVpwCgzXfFJ1ukNn4I8hMwyQzHMJnk/BqWzggB0xpkILuKzaO/aMYhS0SkaJyKXg==}
 
   tsx@4.19.1:
     resolution: {integrity: sha512-0flMz1lh74BR4wOvBjuh9olbnwqCPc35OOlfyzHba0Dc+QNUeWX/Gq2YTbnwcWPO3BMd8fkzRVrHcsR+a7z7rA==}
@@ -2150,6 +2162,8 @@ snapshots:
 
   react-is@18.3.1: {}
 
+  regex@5.0.0: {}
+
   require-directory@2.1.1: {}
 
   resolve-from@4.0.0: {}
@@ -2243,6 +2257,8 @@ snapshots:
       typescript: 5.6.3
       write-json-file: 5.0.0
       zod: 3.23.8
+
+  ts-pattern@5.5.0: {}
 
   tsx@4.19.1:
     dependencies:
