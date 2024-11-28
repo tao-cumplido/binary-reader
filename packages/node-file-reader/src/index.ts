@@ -8,4 +8,4 @@ export type {
 	FloatBytes,
 	SafeIntBytes,
 } from "@nishin/reader";
-export { ByteOrder, DataType, Encoding, ReadError, ReadMode, repeat, repeatAsync } from "@nishin/reader";
+export { ByteOrder, DataType, Encoding, MatchError, ReadError, ReadMode, repeat, repeatAsync } from "@nishin/reader";
