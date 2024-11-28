@@ -3,6 +3,7 @@ export { BinaryReader } from "./binary-reader.js";
 export { ByteOrder } from "./byte-order.js";
 export { DataType } from "./data-type.js";
 export { Encoding } from "./encoding.js";
+export { MatchError } from "./pattern/match.js";
 export type { FloatBytes } from "./primitives/float.js";
 export type { SafeIntBytes } from "./primitives/int.js";
 export { ReadError } from "./read-error.js";

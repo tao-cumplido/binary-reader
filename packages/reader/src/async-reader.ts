@@ -3,7 +3,7 @@ import { BinaryReader } from "./binary-reader.js";
 import { ByteOrder } from "./byte-order.js";
 import { DataType } from "./data-type.js";
 import { Encoding } from "./encoding.js";
-import { matchPattern } from "./pattern/match.js";
+import { MatchError, matchPattern } from "./pattern/match.js";
 import { ReadError } from "./read-error.js";
 import { ReadMode } from "./read-mode.js";
 import type { AsyncDataReaderLike, AsyncSearchItem, BytesValue } from "./types.js";
@@ -260,7 +260,12 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 				if (!(await this.#parseSearchItem(item, backreferences))) {
 					throw new Error();
 				}
-			} catch {
+			} catch (error) {
+				if (error instanceof MatchError) {
+					await this.seek(initialOffset);
+					throw error;
+				}
+
 				if (signal) {
 					// abort signals are updated on the macrotask queue
 					// whereas promises by default run on the microtask queue

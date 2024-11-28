@@ -5,6 +5,7 @@ import { AsyncReader, type UpdateBuffer } from "./async-reader.js";
 import { ByteOrder } from "./byte-order.js";
 import { DataType } from "./data-type.js";
 import { Encoding } from "./encoding.js";
+import { MatchError } from "./pattern/match.js";
 import { ReadMode } from "./read-mode.js";
 
 const updateBuffer = (buffer: Uint8Array): UpdateBuffer<Uint8Array> => async ({ offset, size, }) => {
@@ -233,7 +234,7 @@ test.describe("AsyncReader", () => {
 			});
 		});
 
-		test("timeout", async () => {
+		test("timeout", { timeout: 1000, }, async () => {
 			const source = new Uint8Array([ 0, ]);
 			const reader = new AsyncReader(Infinity, async () => source.subarray(0, 1), { bufferSize: 1, });
 
@@ -242,6 +243,14 @@ test.describe("AsyncReader", () => {
 				assert.equal(error.name, "TimeoutError");
 				return true;
 			});
+		});
+
+		test("invalid pattern", () => {
+			const source = new Uint8Array([ 0x00, 0x01, ]);
+			const reader = new AsyncReader(source.length, updateBuffer(source), { bufferSize: 1, });
+
+			assert.rejects(reader.find([ 0x00, "xx", ]), (error) => error instanceof MatchError);
+			assert.equal(reader.offset, 0);
 		});
 	});
 });

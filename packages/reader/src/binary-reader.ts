@@ -2,7 +2,7 @@ import { assertInt } from "./assert.js";
 import { ByteOrder } from "./byte-order.js";
 import { DataType } from "./data-type.js";
 import { Encoding } from "./encoding.js";
-import { matchPattern } from "./pattern/match.js";
+import { MatchError, matchPattern } from "./pattern/match.js";
 import { ReadError } from "./read-error.js";
 import { ReadMode } from "./read-mode.js";
 import type { BytesValue, SyncDataReaderLike, SyncSearchItem } from "./types.js";
@@ -197,7 +197,12 @@ export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 				if (!this.#parseSearchItem(item, backreferences)) {
 					throw new Error();
 				}
-			} catch {
+			} catch (error) {
+				if (error instanceof MatchError) {
+					this.#offset = initialOffset;
+					throw error;
+				}
+
 				const nextResult = this.find(sequence, { offset: offset + 1, });
 
 				if (typeof nextResult === "undefined") {

@@ -7,6 +7,15 @@ const cache = new Map<string, ByteValidator>();
 
 const patterns = new Set<PatternValidator>([ wildcardPattern, rangePattern, backreferencePattern, ]);
 
+export class MatchError extends Error {
+	readonly invalidPattern: string;
+
+	constructor(pattern: string) {
+		super(`Invalid pattern: ${pattern}`);
+		this.invalidPattern = pattern;
+	}
+}
+
 export function matchPattern(pattern: string) {
 	const cached = cache.get(pattern);
 
@@ -23,5 +32,5 @@ export function matchPattern(pattern: string) {
 		}
 	}
 
-	throw new Error(`invalid pattern: ${pattern}`);
+	throw new MatchError(pattern);
 }

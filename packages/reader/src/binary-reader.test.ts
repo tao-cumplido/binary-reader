@@ -4,6 +4,7 @@ import test from "node:test";
 import { BinaryReader } from "./binary-reader.js";
 import { ByteOrder } from "./byte-order.js";
 import { DataType } from "./data-type.js";
+import { MatchError } from "./pattern/match.js";
 
 test.describe("BinaryReader", () => {
 	test("hasNext", () => {
@@ -131,6 +132,13 @@ test.describe("BinaryReader", () => {
 
 			assert.equal(result, 0);
 			assert.equal(reader.offset, 2);
+		});
+
+		test("invalid pattern", () => {
+			const reader = new BinaryReader(new Uint8Array([ 0x00, 0x01, ]));
+
+			assert.throws(() => reader.find([ 0x00, "xx", ]), (error) => error instanceof MatchError);
+			assert.equal(reader.offset, 0);
 		});
 	});
 });
