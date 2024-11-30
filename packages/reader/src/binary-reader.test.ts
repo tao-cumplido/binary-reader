@@ -135,9 +135,9 @@ test.describe("BinaryReader", () => {
 		});
 
 		test("invalid pattern", () => {
-			const reader = new BinaryReader(new Uint8Array([ 0x00, 0x01, ]));
+			const reader = new BinaryReader(new Uint8Array([ 0x00, 0x01, 0x02, ]));
 
-			assert.throws(() => reader.find([ 0x00, "xx", ]), (error) => error instanceof MatchError);
+			assert.throws(() => reader.find([ 0x01, "xx", ]), (error) => error instanceof MatchError);
 			assert.equal(reader.offset, 0);
 		});
 	});

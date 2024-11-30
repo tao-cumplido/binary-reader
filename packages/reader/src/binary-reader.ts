@@ -197,19 +197,24 @@ export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 				if (!this.#parseSearchItem(item, backreferences)) {
 					throw new Error();
 				}
-			} catch (error) {
-				if (error instanceof MatchError) {
+			} catch (parseError) {
+				if (parseError instanceof MatchError) {
+					this.#offset = initialOffset;
+					throw parseError;
+				}
+
+				try {
+					const nextResult = this.find(sequence, { offset: offset + 1, });
+
+					if (typeof nextResult === "undefined") {
+						this.#offset = initialOffset;
+					}
+
+					return nextResult;
+				} catch (error) {
 					this.#offset = initialOffset;
 					throw error;
 				}
-
-				const nextResult = this.find(sequence, { offset: offset + 1, });
-
-				if (typeof nextResult === "undefined") {
-					this.#offset = initialOffset;
-				}
-
-				return nextResult;
 			}
 		}
 

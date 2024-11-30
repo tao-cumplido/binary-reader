@@ -260,29 +260,24 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 				if (!(await this.#parseSearchItem(item, backreferences))) {
 					throw new Error();
 				}
-			} catch (error) {
-				if (error instanceof MatchError) {
+			} catch (parseError) {
+				if (parseError instanceof MatchError) {
+					await this.seek(initialOffset);
+					throw parseError;
+				}
+
+				try {
+					const nextResult = await this.find(sequence, { offset: offset + 1, signal, });
+
+					if (typeof nextResult === "undefined") {
+						await this.seek(initialOffset);
+					}
+
+					return nextResult;
+				} catch (error) {
 					await this.seek(initialOffset);
 					throw error;
 				}
-
-				if (signal) {
-					// abort signals are updated on the macrotask queue
-					// whereas promises by default run on the microtask queue
-					// this makes sure that updates to the signals state are actually registered
-					await new Promise((resolve) => {
-						// @ts-expect-error: no dom/node globals set to be as environment agnostic as possible
-						setImmediate(resolve);
-					});
-				}
-
-				const nextResult = await this.find(sequence, { offset: offset + 1, signal, });
-
-				if (typeof nextResult === "undefined") {
-					await this.seek(initialOffset);
-				}
-
-				return nextResult;
 			}
 		}
 
