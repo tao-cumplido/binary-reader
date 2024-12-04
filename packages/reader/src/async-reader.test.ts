@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { setImmediate } from "node:timers/promises";
 
 import { AsyncReader, type UpdateBuffer } from "./async-reader.js";
 import { ByteOrder } from "./byte-order.js";
@@ -237,10 +236,7 @@ test.describe("AsyncReader", () => {
 
 		test("timeout", { timeout: 1000, }, async () => {
 			const source = new Uint8Array([ 0, ]);
-			const reader = new AsyncReader(Infinity, async () => {
-				await setImmediate();
-				return source.subarray(0, 1);
-			}, { bufferSize: 1, });
+			const reader = new AsyncReader(Infinity, async () => source.subarray(0, 1), { bufferSize: 1, });
 
 			await assert.rejects(reader.find([ 1, ], { signal: AbortSignal.timeout(0), }), (error) => {
 				assert(error instanceof Error);

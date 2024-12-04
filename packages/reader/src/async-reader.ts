@@ -23,6 +23,8 @@ type AsyncReaderFindOptions = {
 	};
 };
 
+declare var setTimeout: (callback: (...args: unknown[]) => unknown, delay?: number) => void;
+
 export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 	#byteLength: number;
 	#updateBuffer: UpdateBuffer<Buffer>;
@@ -243,9 +245,10 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 		const initialOffset = this.#offset;
 
 		iteration: for (let searchOffset = offset; searchOffset <= this.byteLength; searchOffset++) {
+			await new Promise((resolve) => setTimeout(resolve));
 			await this.seek(searchOffset);
 
-			if (!this.hasNext() || signal?.aborted) {
+			if (signal?.aborted || !this.hasNext()) {
 				await this.seek(initialOffset);
 				return signal?.throwIfAborted() as undefined;
 			}
