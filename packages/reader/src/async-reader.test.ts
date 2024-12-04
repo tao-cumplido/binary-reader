@@ -258,6 +258,14 @@ test.describe("AsyncReader", () => {
 			assert.rejects(reader.find([ 0x01, "xx", ]), (error) => error instanceof MatchError);
 			assert.equal(reader.offset, 0);
 		});
+
+		test("overshoot", async () => {
+			const source = new Uint8Array([ 0x00, 0x01, ]);
+			const reader = new AsyncReader(source.length, updateBuffer(source), { bufferSize: 1, });
+
+			assert.equal(await reader.find([ 0x01, 0x02, ]), undefined);
+			assert.equal(reader.offset, 0);
+		});
 	});
 });
 

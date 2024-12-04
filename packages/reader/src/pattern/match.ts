@@ -11,7 +11,7 @@ export class MatchError extends Error {
 	readonly invalidPattern: string;
 
 	constructor(pattern: string) {
-		super(`Invalid pattern: ${pattern}`);
+		super(`Invalid pattern "${pattern}"`);
 		this.invalidPattern = pattern;
 	}
 }

@@ -10,8 +10,8 @@ export class NodeFileReader extends AsyncReader<Buffer> {
 		return this.#fileHandle;
 	}
 
-	constructor(fileHandle: FileHandle, byteOrder?: ByteOrder, { bufferSize, }?: AsyncReaderConfig);
 	constructor(fileHandle: FileHandle, { bufferSize, }: AsyncReaderConfig);
+	constructor(fileHandle: FileHandle, byteOrder?: ByteOrder, { bufferSize, }?: AsyncReaderConfig);
 	constructor(fileHandle: FileHandle, byteOrderOrConfig?: ByteOrder | AsyncReaderConfig, config?: AsyncReaderConfig) {
 		const byteOrder = byteOrderOrConfig instanceof ByteOrder ? byteOrderOrConfig : undefined;
 		const resolvedConfig = byteOrderOrConfig instanceof ByteOrder ? config : byteOrderOrConfig;

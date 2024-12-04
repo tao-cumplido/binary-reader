@@ -140,6 +140,13 @@ test.describe("BinaryReader", () => {
 			assert.throws(() => reader.find([ 0x01, "xx", ]), (error) => error instanceof MatchError);
 			assert.equal(reader.offset, 0);
 		});
+
+		test("overshoot", () => {
+			const reader = new BinaryReader(new Uint8Array([ 0x00, 0x01, ]));
+
+			assert.equal(reader.find([ 0x01, 0x02, ]), undefined);
+			assert.equal(reader.offset, 0);
+		});
 	});
 });
 
