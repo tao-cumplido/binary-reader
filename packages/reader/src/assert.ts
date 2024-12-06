@@ -19,7 +19,7 @@ export function assertInt(
 		min = -Infinity,
 		max = Infinity,
 		values = [],
-		message = values.length ? `expected integer in [${values.join(", ")}]` : `expected integer in range [${min}, ${max}]`,
+		message = `expected integer in ${values.length ? `[${values.join(", ")}]` : `range [${min}, ${max}]`}, got ${value}`,
 	}: Partial<AssertIntMinMax & AssertIntValues> = {},
 ): void {
 	const check = () => {

@@ -87,9 +87,13 @@ export type Decoder = {
 
 export type ByteValidator = (value: number, backreferences: Uint8Array) => boolean;
 export type SearchItem = number | string;
-export type SyncSearchItem<Buffer extends Uint8Array> = SearchItem | ((next: BinaryReader<Buffer>["next"], backreferences: BinaryReader) => boolean);
-export type AsyncSearchItem<Buffer extends Uint8Array> = SearchItem | ((next: AsyncReader<Buffer>["next"], backreferences: BinaryReader) => Promise<boolean>);
+export type SyncSearchItem = SearchItem | ((next: BinaryReader["next"], backreferences: BinaryReader) => boolean);
+export type AsyncSearchItem = SearchItem | ((next: AsyncReader["next"], backreferences: BinaryReader) => Promise<boolean>);
 export type PatternValidator = (pattern: string) => ByteValidator | null;
+export type SearchProgress = {
+	readonly offset: number;
+	readonly matchBytes: number;
+};
 
 interface PatternExecResult<Groups> {
 	readonly groups: Readonly<Groups>;

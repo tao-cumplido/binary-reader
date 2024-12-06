@@ -5,7 +5,11 @@ import { Encoding } from "./encoding.js";
 import { matchPattern } from "./pattern/match.js";
 import { ReadError } from "./read-error.js";
 import { ReadMode } from "./read-mode.js";
-import type { BytesValue, SyncDataReaderLike, SyncSearchItem } from "./types.js";
+import type { BytesValue, SearchProgress, SyncDataReaderLike, SyncSearchItem } from "./types.js";
+
+type BinaryReaderFindOptions = {
+	readonly offset?: undefined | number;
+};
 
 export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 	#offset = 0;
@@ -153,20 +157,20 @@ export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 		throw new ReadError(`unknown read mode`, result.source);
 	}
 
-	#validateSearchSequence(sequence: readonly SyncSearchItem<Buffer>[]) {
+	#validateSearchSequence(sequence: readonly SyncSearchItem[], reader: BinaryReader) {
 		return sequence.map((item) => {
 			if (typeof item === "number") {
-				return () => this.hasNext() && this.next(DataType.Uint8) === item;
+				return () => reader.hasNext() && reader.next(DataType.Uint8) === item;
 			}
 
 			if (typeof item === "string") {
 				const validate = matchPattern(item);
-				return (backreferences: BinaryReader) => this.hasNext() && validate(this.next(DataType.Uint8), backreferences.#buffer);
+				return (backreferences: BinaryReader) => reader.hasNext() && validate(reader.next(DataType.Uint8), backreferences.#buffer);
 			}
 
 			return (backreferences: BinaryReader) => {
 				try {
-					return item(this.next.bind(this), backreferences);
+					return item(reader.next.bind(reader), backreferences);
 				} catch {
 					return false;
 				}
@@ -174,32 +178,42 @@ export class BinaryReader<Buffer extends Uint8Array = Uint8Array> {
 		});
 	}
 
+	*findAll(sequence: readonly SyncSearchItem[], { offset = this.#offset, }: BinaryReaderFindOptions = {}): Generator<SearchProgress, void> {
+		const reader = new BinaryReader(this.#buffer, this.#byteOrder);
+		const validatedSequence = this.#validateSearchSequence(sequence, reader);
+
+		progress: for (let searchOffset = offset; searchOffset <= reader.byteLength; searchOffset++) {
+			reader.seek(searchOffset);
+
+			if (!reader.hasNext()) {
+				yield { offset: reader.#offset, matchBytes: 0, };
+				return;
+			}
+
+			for (const checkNext of validatedSequence) {
+				const backreferences = new BinaryReader(reader.#buffer.subarray(searchOffset, reader.#offset), reader.#byteOrder);
+
+				if (!checkNext(backreferences)) {
+					yield { offset: searchOffset, matchBytes: 0, };
+					continue progress;
+				}
+			}
+
+			yield { offset: searchOffset, matchBytes: reader.#offset - searchOffset, };
+		}
+	}
+
 	/**
 	 * Search for a given sequence from current or given offset.
 	 * Returns the offset where the found sequence starts or undefined.
 	 * If a sequence is found, the read offset will point behind the sequence.
 	 */
-	find(sequence: readonly SyncSearchItem<Buffer>[], { offset = this.#offset, } = {}): number | undefined {
-		const validatedSequence = this.#validateSearchSequence(sequence);
-		const initialOffset = this.#offset;
-
-		iteration: for (let searchOffset = offset; searchOffset <= this.byteLength; searchOffset++) {
-			this.seek(searchOffset);
-
-			if (!this.hasNext()) {
-				this.#offset = initialOffset;
-				return;
+	find(sequence: readonly SyncSearchItem[], options?: BinaryReaderFindOptions): number | undefined {
+		for (const { offset, matchBytes, } of this.findAll(sequence, options)) {
+			if (matchBytes) {
+				this.seek(offset + matchBytes);
+				return offset;
 			}
-
-			for (const checkNext of validatedSequence) {
-				const backreferences = new BinaryReader(this.#buffer.subarray(searchOffset, this.#offset), this.#byteOrder);
-
-				if (!checkNext(backreferences)) {
-					continue iteration;
-				}
-			}
-
-			return searchOffset;
 		}
 	}
 }

@@ -6,7 +6,7 @@ import { Encoding } from "./encoding.js";
 import { matchPattern } from "./pattern/match.js";
 import { ReadError } from "./read-error.js";
 import { ReadMode } from "./read-mode.js";
-import type { AsyncDataReaderLike, AsyncSearchItem, BytesValue } from "./types.js";
+import type { AsyncDataReaderLike, AsyncSearchItem, BytesValue, SearchProgress } from "./types.js";
 
 export interface AsyncReaderConfig {
 	readonly bufferSize: number;
@@ -211,25 +211,58 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 		}
 	}
 
-	#validateSearchSequence(sequence: readonly AsyncSearchItem<Buffer>[]) {
+	#validateSearchSequence(sequence: readonly AsyncSearchItem[], reader: AsyncReader) {
 		return sequence.map((item) => {
 			if (typeof item === "number") {
-				return async () => this.hasNext() && await this.next(DataType.Uint8) === item;
+				return async () => reader.hasNext() && await reader.next(DataType.Uint8) === item;
 			}
 
 			if (typeof item === "string") {
 				const validate = matchPattern(item);
-				return async (backreferences: BinaryReader) => this.hasNext() && validate(await this.next(DataType.Uint8), backreferences.buffer);
+				return async (backreferences: BinaryReader) => reader.hasNext() && validate(await reader.next(DataType.Uint8), backreferences.buffer);
 			}
 
 			return async (backreferences: BinaryReader) => {
 				try {
-					return await item(this.next.bind(this), backreferences);
+					return await item(reader.next.bind(reader), backreferences);
 				} catch {
 					return false;
 				}
 			};
 		});
+	}
+
+	async *findAll(sequence: readonly AsyncSearchItem[], { offset = this.#offset, signal, }: AsyncReaderFindOptions = {}): AsyncGenerator<SearchProgress, void> {
+		signal?.throwIfAborted();
+
+		const reader = new AsyncReader(this.#byteLength, this.#updateBuffer, this.#byteOrder, { bufferSize: this.#bufferSize, });
+		const validatedSequence = this.#validateSearchSequence(sequence, reader);
+
+		progress: for (let searchOffset = offset; searchOffset <= reader.byteLength; searchOffset++) {
+			await new Promise((resolve) => setTimeout(resolve));
+			await reader.seek(searchOffset);
+
+			if (signal?.aborted || !reader.hasNext()) {
+				signal?.throwIfAborted();
+				yield { offset: reader.#offset, matchBytes: 0, };
+				return;
+			}
+
+			for (const checkNext of validatedSequence) {
+				const currentOffset = reader.#offset;
+				await reader.seek(searchOffset);
+				const referenceBuffer = await reader.next(DataType.bytes(currentOffset - searchOffset));
+				const backreferences = new BinaryReader(referenceBuffer, reader.#byteOrder);
+				await reader.seek(currentOffset);
+
+				if (!(await checkNext(backreferences))) {
+					yield { offset: searchOffset, matchBytes: 0, };
+					continue progress;
+				}
+			}
+
+			yield { offset: searchOffset, matchBytes: reader.#offset - searchOffset, };
+		}
 	}
 
 	/**
@@ -238,34 +271,12 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 	 * If a sequence is found, the read offset will point behind the sequence.
 	 * An AbortSignal can be passed as option to cancel potentially long running searches.
 	 */
-	async find(sequence: readonly AsyncSearchItem<Buffer>[], { offset = this.#offset, signal, }: AsyncReaderFindOptions = {}): Promise<number | undefined> {
-		signal?.throwIfAborted();
-
-		const validatedSequence = this.#validateSearchSequence(sequence);
-		const initialOffset = this.#offset;
-
-		iteration: for (let searchOffset = offset; searchOffset <= this.byteLength; searchOffset++) {
-			await new Promise((resolve) => setTimeout(resolve));
-			await this.seek(searchOffset);
-
-			if (signal?.aborted || !this.hasNext()) {
-				await this.seek(initialOffset);
-				return signal?.throwIfAborted() as undefined;
+	async find(sequence: readonly AsyncSearchItem[], options?: AsyncReaderFindOptions): Promise<number | undefined> {
+		for await (const { offset, matchBytes, } of this.findAll(sequence, options)) {
+			if (matchBytes) {
+				await this.seek(offset + matchBytes);
+				return offset;
 			}
-
-			for (const checkNext of validatedSequence) {
-				const currentOffset = this.#offset;
-				await this.seek(searchOffset);
-				const referenceBuffer = await this.next(DataType.bytes(currentOffset - searchOffset));
-				const backreferences = new BinaryReader(referenceBuffer, this.#byteOrder);
-				await this.seek(currentOffset);
-
-				if (!(await checkNext(backreferences))) {
-					continue iteration;
-				}
-			}
-
-			return searchOffset;
-		}
+		};
 	}
 }

@@ -109,8 +109,8 @@ test.describe("BinaryReader", () => {
 			}, ]), undefined);
 			assert.equal(reader.offset, 2);
 
-			assert.equal(reader.find([ () => {
-				const value = reader.next(DataType.Uint16);
+			assert.equal(reader.find([ (read) => {
+				const value = read(DataType.Uint16);
 				return value === 0x30;
 			}, ]), 2);
 			assert.equal(reader.offset, 4);
