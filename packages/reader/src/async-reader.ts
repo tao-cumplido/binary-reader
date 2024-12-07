@@ -16,6 +16,7 @@ export type UpdateBuffer<Buffer extends Uint8Array> = (state: { offset: number; 
 
 type AsyncReaderFindOptions = {
 	readonly offset?: undefined | number;
+	readonly microTaskByteLength?: undefined | number;
 	readonly signal?: undefined | {
 		readonly aborted: boolean;
 		readonly reason: unknown;
@@ -232,14 +233,19 @@ export class AsyncReader<Buffer extends Uint8Array = Uint8Array> {
 		});
 	}
 
-	async *findAll(sequence: readonly AsyncSearchItem[], { offset = this.#offset, signal, }: AsyncReaderFindOptions = {}): AsyncGenerator<SearchProgress, void> {
+	async *findAll(sequence: readonly AsyncSearchItem[], { offset = this.#offset, microTaskByteLength = 100, signal, }: AsyncReaderFindOptions = {}): AsyncGenerator<SearchProgress, void> {
+		assertInt(microTaskByteLength, { min: 1, });
+
 		signal?.throwIfAborted();
 
 		const reader = new AsyncReader(this.#byteLength, this.#updateBuffer, this.#byteOrder, { bufferSize: this.#bufferSize, });
 		const validatedSequence = this.#validateSearchSequence(sequence, reader);
 
 		progress: for (let searchOffset = offset; searchOffset <= reader.byteLength; searchOffset++) {
-			await new Promise((resolve) => setTimeout(resolve));
+			if ((searchOffset - offset) % microTaskByteLength === 0) {
+				await new Promise((resolve) => setTimeout(resolve));
+			}
+
 			await reader.seek(searchOffset);
 
 			if (signal?.aborted || !reader.hasNext()) {
